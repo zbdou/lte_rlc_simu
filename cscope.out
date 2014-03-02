@@ -1,4 +1,4 @@
-cscope 15 $HOME/librlc -q 0000002143 0000253641
+cscope 15 $HOME/lte_rlc_simu -q 0000002143 0000253647
 	@bitcpy.c
 
 5 

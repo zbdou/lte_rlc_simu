@@ -1,7 +1,7 @@
 # config.mk
 # common make rules
 
-PRJDIR = $(HOME)/rlc_xph
+PRJDIR = $(HOME)/lte_rlc_simu
 CROSS_COMPILE = 
 
 AS  = $(CROSS_COMPILE)as
