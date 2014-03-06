@@ -159,6 +159,59 @@ typedef enum {
 /* convert byte to bits */
 #define OCTET 8
 
+typedef struct {
+	u32 packet_size;			/* in bytes */
+} traffic_t;
+
+typedef struct {
+	u32 link_distance;			/* kilometers */
+	u32 prop_delay;				/* in ms */
+	u32 link_bandwidth;			/* in kbps */
+	u32 per;					/* pakcet error ratio, (per/10)% */
+} radio_link_t;
+
+typedef struct {
+	u32 t_Reodering;			/* in us */
+	u32 UM_Window_Size;
+	u32 sn_FieldLength;
+} um_mode_paras_t;
+
+
+typedef struct {
+	u32 t_Reodering;
+	u32 t_StatusProhibit;
+	u32 t_PollRetransmit;
+
+	/* FIXME, other.... */
+} am_mode_paras_t;
+
+typedef struct {
+	traffic_t t;
+	radio_link_t rl;
+	u32 tx_delay;				/* derived */
+
+	union {
+		um_mode_paras_t ump;
+		am_mode_paras_t amp;
+	} rlc_paras;
+	
+	/* @transmitter */
+	union {
+		rlc_entity_um_t um_tx;
+		rlc_entity_am_t am_tx;
+	} rlc_tx;
+
+	/* @receiver */
+	union {
+		rlc_entity_um_t um_rx;
+		rlc_entity_am_t am_rx;
+	} rlc_rx;
+	
+} simu_paras_t;
+
+/* convert ms to us */
+#define MS2US(xms) (1e3*xms)
+
 int main (int argc, char *argv[])
 {
 	/*
@@ -170,24 +223,38 @@ int main (int argc, char *argv[])
 	        advance the simu time by 1 time unit (ms)
 	     }
 	 */
+	simu_paras_t spt;
+	spt.t.packet_size = 100;	/* 100 bytes */
+	spt.rl.link_distance = 0;
+	spt.rl.prop_delay = MS2US(270);	/* 270 ms */
+	spt.rl.link_bandwidth = 1024;
+	spt.rl.per = 10;
 
-	/* 1 */
-	/* @traffic */
-	u32 packet_size = 100;		/* in bytes */
+	spt.tx_delay = ( (1e3 * OCTET *
+						   (spt.t.packet_size +
+							MAC_HEADER_SIZE +
+							PHY_HEADER_SIZE))
+						  / spt.rl.link_bandwidth );
+
+
+	/* rlc params */
+	spt.rlc_paras.ump.t_Reodering = MS2US(5); /* 5 ms */
+	spt.rlc_paras.ump.UM_Window_Size = 512;
+	spt.rlc_paras.ump.sn_FieldLength = 10;
 	
-	/* @radio link */
-	u32 link_distance = 0;
-	u32 prop_delay = 270;		/* ms */
-	u32 link_bandwidth = 1024;	/* kbps */
-	u32 per = 10;				/* packet error ratio, x/00, i.e. = (x/10)% */
-
-	/* @derived */
-	u32 tx_delay = 0;			/* ms */
 	
 	/* @transmitter */
 	/* @receiver */
+	/* leave these to be done at the simulatioin begin event */
+
+	/* init log */
+	zlog_default = openzlog(ZLOG_STDOUT);
+	ZLOG_DEBUG("pkt size = %d, prop delay = %d, link bandwidth = %d," \
+			   "tx delay = %d\n", spt.t.packet_size, spt.rl.prop_delay,
+			   spt.rl.link_bandwidth, spt.tx_delay);
 	
-	
+
+	/* FIXME: simu time unit: 1us! */
 	
 	
 	return 0;
