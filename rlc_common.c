@@ -52,7 +52,7 @@ fastalloc_t *g_mem_am_pdu_tx_base;
 
 /*************** Timer APIS: a wrapper of ptimer ********************/
 static ptimer_table_t rlc_timerbase;
-#define RLC_TIMER_NSLOT 2048
+#define RLC_TIMER_NSLOT 16384
 
 void rlc_timer_start(ptimer_t *timer)
 {

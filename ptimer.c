@@ -47,7 +47,7 @@ void ptimer_start(ptimer_table_t *table, ptimer_t *timer, u32 timeval)
 	
 	if(table == NULL || timer == NULL)
 		return;
-	
+
 	if(timer->flags & PTIMER_FLAG_RUNNING)
 	{
 		/* avoid timer is started multiple times */
@@ -69,10 +69,9 @@ void ptimer_start(ptimer_table_t *table, ptimer_t *timer, u32 timeval)
 		/* find register slot */
 		slot = (table->curslot + timeval) & (table->allslots - 1);
 	}
-	
+
 	dllist_append(&table->table[slot], (dllist_node_t *)timer);
-	
-//	ZLOG_DEBUG("start timer: 0x%p timeval=%u, curslot=%u target_slot=%u\n", timer, timeval, table->curslot, slot);
+	ZLOG_DEBUG("start timer: 0x%p timeval=%u, curslot=%u target_slot=%u\n", timer, timeval, table->curslot, slot);
 }
 
 

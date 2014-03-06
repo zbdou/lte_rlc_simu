@@ -13,6 +13,10 @@
 #include "rlc.h"
 #include "log.h"
 
+#define FINISHED 1
+#define NOT_FINISHED 0
+int g_is_finished = NOT_FINISHED;
+
 /* simulation input parameters */
 /* @transmitter */
 /* @receiver */
@@ -80,6 +84,7 @@ void simu_begin_event(void *timer, u32 arg1, u32 arg2)
 	  5. generate the tx begin event at time 0?
 	  6. put the packet tx begin event into the event timer queue  
 	 */
+	g_is_finished = FINISHED;
 }
 
 void simu_end_event(void *timer, u32 arg1, u32 arg2)
@@ -212,17 +217,19 @@ typedef struct {
 /* convert ms to us */
 #define MS2US(xms) (1e3*xms)
 
+
 int main (int argc, char *argv[])
 {
 	/*
 	  1. acquire all simulation parameters or use the default values
-	  2. validation check of parameters
-	  3. generate the simulation begin event @time = 0
-	  4. add this event to the timer queue
-	  5. while (simulatio not finished) {
+	  2. generate the simulation begin event @time = 0
+	  3. add this event to the timer queue
+	  4. while (simulatio not finished) {
 	        advance the simu time by 1 time unit (ms)
 	     }
 	 */
+
+	/* 1. */
 	simu_paras_t spt;
 	spt.t.packet_size = 100;	/* 100 bytes */
 	spt.rl.link_distance = 0;
@@ -254,8 +261,21 @@ int main (int argc, char *argv[])
 			   spt.rl.link_bandwidth, spt.tx_delay);
 	
 
+	/* 2. */
 	/* FIXME: simu time unit: 1us! */
-	
+	ptimer_t simu_begin_timer = {
+		.duration = 0,
+		.onexpired_func = simu_begin_event,
+		.param[0] = (u32) &spt,
+		.param[1] = 0,
+	};
+
+	rlc_init();
+	rlc_timer_start(&simu_begin_timer);
+
+	while (!g_is_finished) {
+		rlc_timer_push(1);		/* 1 time unit */
+	}
 	
 	return 0;
 }
