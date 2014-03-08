@@ -164,6 +164,11 @@ void mac_free_sdu(void *data, void *cookie)
 }
 
 /* simulation events */
+/*
+  @arg1 in pointer to the simu_paras_t struct
+  @arg2 in event type ( = SIMU_BEGIN)
+ */
+
 void simu_begin_event(void *timer, void* arg1, void* arg2)
 {
 	/* FIXME: mac_free_pdu, mac_free_sdu */
@@ -184,14 +189,15 @@ void simu_begin_event(void *timer, void* arg1, void* arg2)
 				pspt->rlc_paras.ump.t_Reordering, \
 				mac_free_pdu, mac_free_sdu);
 
-	/* 2. */
-	rlc_um_set_deliv_func(&pspt->rlc_tx.um_tx, sink);
-
-	/* @receiver */
+	/* @receiver
+	   in @free_sdu should be set to NULL, as we re-use
+	   the rlc sdu buffer through the entire simulation.
+	 */
+	
 	rlc_um_init(&(pspt->rlc_rx.um_rx), pspt->rlc_paras.ump.sn_FieldLength, \
 				pspt->rlc_paras.ump.UM_Window_Size, \
 				pspt->rlc_paras.ump.t_Reordering, \
-				mac_free_pdu /* ? */, mac_free_sdu /* ? */);
+				mac_free_pdu /* ? */, NULL);
 
 	/* 2. */
 	rlc_um_set_deliv_func(&pspt->rlc_rx.um_rx, sink);
@@ -207,13 +213,15 @@ void simu_begin_event(void *timer, void* arg1, void* arg2)
 
 	/* 4. */
 	rlc_timer_start(pkt_tx_begin);
+
+	g_is_finished = FINISHED;
 }
 
+/* FIXME:
+   arg1? arg2?
+*/
 void simu_end_event(void *timer, void* arg1, void* arg2)
 {
-	/* FIXME:
-	   arg1? arg2?
-	*/
 	/*
 	  1. output the simulation results {
 	       for the sink, calculate the packet loss ratio per second
@@ -227,6 +235,10 @@ void simu_end_event(void *timer, void* arg1, void* arg2)
 	g_is_finished = FINISHED;
 }
 
+/*
+  @arg1 in pointer to the simu_paras_t struct
+  @arg2 in pointer to the packet_t struct
+ */
 void pkt_rx_end_event(void *timer, void* arg1, void* arg2)
 {
 	/*
@@ -237,6 +249,10 @@ void pkt_rx_end_event(void *timer, void* arg1, void* arg2)
 	 */
 }
 
+/*
+  @arg1 in pointer to the simu_paras_t struct
+  @arg2 in event type ( = PKT_TX_BEGIN)
+ */
 void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 {
 	/*
@@ -251,14 +267,18 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 	/* 1. */
 	/* 2. */
 	
+
+
+
+	
 	/* 3. & 4. */
 	ptimer_t *pkt_tx_end = (ptimer_t*)FASTALLOC(pspt->g_mem_ptimer_t);
 	assert(pkt_tx_end);
 
-	pkt_tx_end->duration = pspt->rl.prop_delay;	/* propagation delay */
+	pkt_tx_end->duration = pspt->tx_delay;	/* tx delay */
 	pkt_tx_end->onexpired_func = pkt_tx_end_event;
 	pkt_tx_end->param[0] = (void*) pspt;
-	pkt_tx_end->param[1] = (void*) PKT_TX_END;
+	pkt_tx_end->param[1] = (void*) PKT_TX_END; /* FIXME: should be the pointer to the packet_t */
 	
 	rlc_timer_start(pkt_tx_end);
 
@@ -270,6 +290,10 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 	FASTFREE(pspt->g_mem_ptimer_t, timer);
 }
 
+/*
+  @arg1 in pointer to the simu_paras_t struct
+  @arg2 in pointer to the packet_t struct
+ */
 void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
 {
 	/*
@@ -285,7 +309,7 @@ void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
 	     (time = cur simu time + prop delay)
 	 */
 	simu_paras_t *pspt = (simu_paras_t*) arg1;
-	assert((event_type_t)arg2 == PKT_TX_END);
+
 	
 	u32 tx_interval = 1;		/* us */
 
@@ -294,7 +318,7 @@ void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
 	pkt_tx_begin->duration = tx_interval;
 	pkt_tx_begin->onexpired_func = pkt_tx_begin_event;
 	pkt_tx_begin->param[0] = (void*) pspt;
-	pkt_tx_begin->param[1] = (void*) PKT_TX_BEGIN;
+	pkt_tx_begin->param[1] = (void*) PKT_TX_BEGIN; /* FIXME */
 
 	rlc_timer_start(pkt_tx_begin);
 
@@ -369,7 +393,8 @@ int main (int argc, char *argv[])
 
 	/* 4. */
 	int step_in_us = 1;
-	while (!g_is_finished && time_elasped_in_us <= MS2US(S2MS(1000))) {
+	// while (!g_is_finished && time_elasped_in_us <= MS2US(S2MS(1000))) {
+	while (!g_is_finished) {		
 		rlc_timer_push(step_in_us);		/* us */
 		time_elasped_in_us += step_in_us;
 	}
