@@ -125,8 +125,17 @@ typedef struct {
 	fastalloc_t *g_mem_ptimer_t; /* as the timer event memory pool. */
 } simu_paras_t;
 
+/* convert s to ms */
+#define S2MS(xs) (1e3*xs)
+
 /* convert ms to us */
 #define MS2US(xms) (1e3*xms)
+
+/* forward declaration */
+void simu_end_event(void *timer, void* arg1, void* arg2);
+void pkt_rx_end_event(void *timer, void* arg1, void* arg2);
+void pkt_tx_begin_event(void *timer, void* arg1, void* arg2);
+void pkt_tx_end_event(void *timer, void* arg1, void* arg2);
 
 /* the sink
    set the rlc um rx -> deliv_sdr function pointer to this sink function
@@ -154,11 +163,6 @@ void mac_free_sdu(void *data, void *cookie)
 	free(data);
 }
 
-void simu_end_event(void *timer, void* arg1, void* arg2);
-void pkt_rx_end_event(void *timer, void* arg1, void* arg2);
-void pkt_tx_begin_event(void *timer, void* arg1, void* arg2);
-void pkt_tx_end_event(void *timer, void* arg1, void* arg2);
-
 /* simulation events */
 void simu_begin_event(void *timer, void* arg1, void* arg2)
 {
@@ -171,6 +175,7 @@ void simu_begin_event(void *timer, void* arg1, void* arg2)
 	  4. put the packet tx begin event into the event timer queue  
 	 */
 	simu_paras_t *pspt = (simu_paras_t*) arg1;
+	assert((event_type_t)arg2 == SIMU_BEGIN);
 	
 	/* 1. */
 	/* @transmitter */
@@ -196,14 +201,12 @@ void simu_begin_event(void *timer, void* arg1, void* arg2)
 	ptimer_t *pkt_tx_begin = (ptimer_t*)FASTALLOC(pspt->g_mem_ptimer_t);
 	assert(pkt_tx_begin);
 	pkt_tx_begin->duration = 0;
-	/* pkt_tx_begin->onexpired_func = pkt_tx_begin_event; */
-	/* pkt_tx_begin->param[0] = (void*) pspt; */
-	/* pkt_tx_begin->param[1] = NULL; */
-	
-	// rlc_timer_start(pkt_tx_begin);
-	
-	g_is_finished = FINISHED;	
+	pkt_tx_begin->onexpired_func = pkt_tx_begin_event;
+	pkt_tx_begin->param[0] = (void*) pspt;
+	pkt_tx_begin->param[1] = (void*) PKT_TX_BEGIN;
 
+	/* 4. */
+	rlc_timer_start(pkt_tx_begin);
 }
 
 void simu_end_event(void *timer, void* arg1, void* arg2)
@@ -239,12 +242,32 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 	/*
 	  1. get a @packet from the RLC UM entity TX
 	  2. set this @packet's tx_begin_timestamp = current simu time
-	  3. calculate the tx delay
-	  4. generate the packet tx end event for this packet
-	  5. put this packet tx end event to the timer queue
+	  3. generate the packet tx end event for this packet
+	  4. put this packet tx end event to the timer queue
 	 */
+	simu_paras_t *pspt = (simu_paras_t*) arg1;
+	assert((event_type_t)arg2 == PKT_TX_BEGIN);
+
+	/* 1. */
+	/* 2. */
+	
+	/* 3. & 4. */
+	ptimer_t *pkt_tx_end = (ptimer_t*)FASTALLOC(pspt->g_mem_ptimer_t);
+	assert(pkt_tx_end);
+
+	pkt_tx_end->duration = pspt->rl.prop_delay;	/* propagation delay */
+	pkt_tx_end->onexpired_func = pkt_tx_end_event;
+	pkt_tx_end->param[0] = (void*) pspt;
+	pkt_tx_end->param[1] = (void*) PKT_TX_END;
+	
+	rlc_timer_start(pkt_tx_end);
+
+		
+	/*
 	ZLOG_DEBUG("going to be finished!\n");
 	g_is_finished = FINISHED;
+	*/
+	FASTFREE(pspt->g_mem_ptimer_t, timer);
 }
 
 void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
@@ -261,6 +284,21 @@ void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
 	  7. put the packet rx end event to the timer queue
 	     (time = cur simu time + prop delay)
 	 */
+	simu_paras_t *pspt = (simu_paras_t*) arg1;
+	assert((event_type_t)arg2 == PKT_TX_END);
+	
+	u32 tx_interval = 1;		/* us */
+
+	ptimer_t *pkt_tx_begin = (ptimer_t*)FASTALLOC(pspt->g_mem_ptimer_t);
+	assert(pkt_tx_begin);
+	pkt_tx_begin->duration = tx_interval;
+	pkt_tx_begin->onexpired_func = pkt_tx_begin_event;
+	pkt_tx_begin->param[0] = (void*) pspt;
+	pkt_tx_begin->param[1] = (void*) PKT_TX_BEGIN;
+
+	rlc_timer_start(pkt_tx_begin);
+
+	FASTFREE(pspt->g_mem_ptimer_t, timer);
 }
 
 /* AM mode: TX, t-PollRx */
@@ -279,6 +317,9 @@ int main (int argc, char *argv[])
 	        advance the simu time by 1 time unit (ms)
 	     }
 	 */
+	int time_elasped_in_us = 0;
+	
+	
 	/* 1. */
 	simu_paras_t spt;
 	spt.t.packet_size = 100;	/* 100 bytes */
@@ -327,9 +368,12 @@ int main (int argc, char *argv[])
 	rlc_timer_start(&simu_begin_timer);
 
 	/* 4. */
-	while (!g_is_finished) {
-		rlc_timer_push(1);		/* 1 us */
+	int step_in_us = 1;
+	while (!g_is_finished && time_elasped_in_us <= MS2US(S2MS(1000))) {
+		rlc_timer_push(step_in_us);		/* us */
+		time_elasped_in_us += step_in_us;
 	}
+	ZLOG_DEBUG("time_elasped_in_us = %d\n", time_elasped_in_us);
 
 	return 0;
 }

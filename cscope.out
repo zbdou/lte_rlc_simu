@@ -1,4 +1,4 @@
-cscope 15 $HOME/lte_rlc_simu -q 0000002206 0000257021
+cscope 15 $HOME/lte_rlc_simu -q 0000002212 0000258363
 	@bitcpy.c
 
 5 
@@ -4260,7 +4260,7 @@ d©a_addr
 ;
 
 92 
-u32
+size_t
  
 by‹_®ignm’t
 ;
@@ -8166,6 +8166,12 @@ vpow”
 );
 
 224 
+	`as£¹
+(
+bË
+->table);
+
+226 
 bË
 ->
 ®l¦Ùs
@@ -8173,23 +8179,23 @@ vpow”
 vpow”
 ;
 
-225 
+227 
 bË
 ->
 cur¦Ù
  = 0;
 
-227 if(
+229 if(
 bË
 ->table)
 
-229 
+231 
 u32
  
 i
 ;
 
-230 
+232 
 i
 =0; i<
 bË
@@ -8197,7 +8203,7 @@ i
 ®l¦Ùs
 ; i++)
 
-232 
+234 
 	`dÎi¡_š™
 (&
 bË
@@ -8205,15 +8211,15 @@ i
 i
 ]);
 
-236  
+238  
 bË
 ->table?0:-1;
 
-237 
+239 
 	}
 }
 
-250 
+252 
 	$±im”_is_ruÂšg
 (
 ±im”_t
@@ -8221,7 +8227,7 @@ i
 tim”
 )
 
-252  (
+254  (
 tim”
 ->
 æags
@@ -8229,7 +8235,7 @@ tim”
 PTIMER_FLAG_RUNNING
 );
 
-253 
+255 
 	}
 }
 
@@ -25842,6 +25848,14 @@ am_mode_·¿s_t
 ;
 
 129 
+	#S2MS
+(
+xs
+è(1e3*xs)
+
+	)
+
+132 
 	#MS2US
 (
 xms
@@ -25849,7 +25863,47 @@ xms
 
 	)
 
-134 
+135 
+simu_’d_ev’t
+(*
+tim”
+, * 
+¬g1
+, * 
+¬g2
+);
+
+136 
+pkt_rx_’d_ev’t
+(*
+tim”
+, * 
+¬g1
+, * 
+¬g2
+);
+
+137 
+pkt_tx_begš_ev’t
+(*
+tim”
+, * 
+¬g1
+, * 
+¬g2
+);
+
+138 
+pkt_tx_’d_ev’t
+(*
+tim”
+, * 
+¬g1
+, * 
+¬g2
+);
+
+143 
 	$sšk
 (
 ¾c_’t™y_um_rx
@@ -25861,11 +25915,11 @@ umrx
 sdu
 )
 
-143 
+152 
 	}
 }
 
-146 
+155 
 	$mac_ä“_pdu
 (*
 d©a
@@ -25873,17 +25927,17 @@ d©a
 cook›
 )
 
-148 
+157 
 	`ä“
 (
 cook›
 );
 
-149 
+158 
 	}
 }
 
-152 
+161 
 	$mac_ä“_sdu
 (*
 d©a
@@ -25891,57 +25945,17 @@ d©a
 cook›
 )
 
-154 
+163 
 	`ä“
 (
 d©a
 );
 
-155 
+164 
 	}
 }
 
-157 
-simu_’d_ev’t
-(*
-tim”
-, * 
-¬g1
-, * 
-¬g2
-);
-
-158 
-pkt_rx_’d_ev’t
-(*
-tim”
-, * 
-¬g1
-, * 
-¬g2
-);
-
-159 
-pkt_tx_begš_ev’t
-(*
-tim”
-, * 
-¬g1
-, * 
-¬g2
-);
-
-160 
-pkt_tx_’d_ev’t
-(*
-tim”
-, * 
-¬g1
-, * 
-¬g2
-);
-
-163 
+167 
 	$simu_begš_ev’t
 (*
 tim”
@@ -25951,7 +25965,7 @@ tim”
 ¬g2
 )
 
-173 
+177 
 simu_·¿s_t
  *
 p¥t
@@ -25959,7 +25973,17 @@ p¥t
 ¬g1
 ;
 
-177 
+178 
+	`as£¹
+((
+ev’t_ty³_t
+)
+¬g2
+ =ð
+SIMU_BEGIN
+);
+
+182 
 	`¾c_um_š™
 (&(
 p¥t
@@ -25975,7 +25999,7 @@ ump
 ¢_F›ldL’gth
 , \
 
-178 
+183 
 p¥t
 ->
 ¾c_·¿s
@@ -25985,7 +26009,7 @@ ump
 UM_Wšdow_Size
 , \
 
-179 
+184 
 p¥t
 ->
 ¾c_·¿s
@@ -25995,13 +26019,13 @@ ump
 t_ReÜd”šg
 , \
 
-180 
+185 
 mac_ä“_pdu
 , 
 mac_ä“_sdu
 );
 
-183 
+188 
 	`¾c_um_£t_d–iv_func
 (&
 p¥t
@@ -26013,7 +26037,7 @@ um_tx
 sšk
 );
 
-186 
+191 
 	`¾c_um_š™
 (&(
 p¥t
@@ -26029,7 +26053,7 @@ ump
 ¢_F›ldL’gth
 , \
 
-187 
+192 
 p¥t
 ->
 ¾c_·¿s
@@ -26039,7 +26063,7 @@ ump
 UM_Wšdow_Size
 , \
 
-188 
+193 
 p¥t
 ->
 ¾c_·¿s
@@ -26049,13 +26073,13 @@ ump
 t_ReÜd”šg
 , \
 
-189 
+194 
 mac_ä“_pdu
  , 
 mac_ä“_sdu
  );
 
-192 
+197 
 	`¾c_um_£t_d–iv_func
 (&
 p¥t
@@ -26067,7 +26091,7 @@ um_rx
 sšk
 );
 
-196 
+201 
 ±im”_t
  *
 pkt_tx_begš
@@ -26079,29 +26103,53 @@ p¥t
 g_mem_±im”_t
 );
 
-197 
+202 
 	`as£¹
 (
 pkt_tx_begš
 );
 
-198 
+203 
 pkt_tx_begš
 ->
 du¿tiÚ
  = 0;
 
-205 
-g_is_fšished
+204 
+pkt_tx_begš
+->
+Úexpœed_func
  = 
-FINISHED
+pkt_tx_begš_ev’t
 ;
 
-207 
+205 
+pkt_tx_begš
+->
+·¿m
+[0] = (*è
+p¥t
+;
+
+206 
+pkt_tx_begš
+->
+·¿m
+[1] = (*è
+PKT_TX_BEGIN
+;
+
+209 
+	`¾c_tim”_¡¬t
+(
+pkt_tx_begš
+);
+
+210 
 	}
 }
 
-209 
+212 
 	$simu_’d_ev’t
 (*
 tim”
@@ -26111,17 +26159,17 @@ tim”
 ¬g2
 )
 
-224 
+227 
 g_is_fšished
  = 
 FINISHED
 ;
 
-225 
+228 
 	}
 }
 
-227 
+230 
 	$pkt_rx_’d_ev’t
 (*
 tim”
@@ -26131,11 +26179,11 @@ tim”
 ¬g2
 )
 
-235 
+238 
 	}
 }
 
-237 
+240 
 	$pkt_tx_begš_ev’t
 (*
 tim”
@@ -26145,21 +26193,95 @@ tim”
 ¬g2
 )
 
-246 
-	`ZLOG_DEBUG
-("goingo be finished!\n");
-
-247 
-g_is_fšished
- = 
-FINISHED
+248 
+simu_·¿s_t
+ *
+p¥t
+ = (simu_·¿s_t*è
+¬g1
 ;
 
-248 
+249 
+	`as£¹
+((
+ev’t_ty³_t
+)
+¬g2
+ =ð
+PKT_TX_BEGIN
+);
+
+255 
+±im”_t
+ *
+pkt_tx_’d
+ = (±im”_t*)
+	`FASTALLOC
+(
+p¥t
+->
+g_mem_±im”_t
+);
+
+256 
+	`as£¹
+(
+pkt_tx_’d
+);
+
+258 
+pkt_tx_’d
+->
+du¿tiÚ
+ = 
+p¥t
+->
+¾
+.
+´Ý_d–ay
+;
+
+259 
+pkt_tx_’d
+->
+Úexpœed_func
+ = 
+pkt_tx_’d_ev’t
+;
+
+260 
+pkt_tx_’d
+->
+·¿m
+[0] = (*è
+p¥t
+;
+
+261 
+pkt_tx_’d
+->
+·¿m
+[1] = (*è
+PKT_TX_END
+;
+
+263 
+	`¾c_tim”_¡¬t
+(
+pkt_tx_’d
+);
+
+270 
+	`FASTFREE
+(
+tim”
+);
+
+271 
 	}
 }
 
-250 
+273 
 	$pkt_tx_’d_ev’t
 (*
 tim”
@@ -26169,11 +26291,97 @@ tim”
 ¬g2
 )
 
-264 
+287 
+simu_·¿s_t
+ *
+p¥t
+ = (simu_·¿s_t*è
+¬g1
+;
+
+288 
+	`as£¹
+((
+ev’t_ty³_t
+)
+¬g2
+ =ð
+PKT_TX_END
+);
+
+290 
+u32
+ 
+tx_š‹rv®
+ = 1;
+
+292 
+±im”_t
+ *
+pkt_tx_begš
+ = (±im”_t*)
+	`FASTALLOC
+(
+p¥t
+->
+g_mem_±im”_t
+);
+
+293 
+	`as£¹
+(
+pkt_tx_begš
+);
+
+294 
+pkt_tx_begš
+->
+du¿tiÚ
+ = 
+tx_š‹rv®
+;
+
+295 
+pkt_tx_begš
+->
+Úexpœed_func
+ = 
+pkt_tx_begš_ev’t
+;
+
+296 
+pkt_tx_begš
+->
+·¿m
+[0] = (*è
+p¥t
+;
+
+297 
+pkt_tx_begš
+->
+·¿m
+[1] = (*è
+PKT_TX_BEGIN
+;
+
+299 
+	`¾c_tim”_¡¬t
+(
+pkt_tx_begš
+);
+
+301 
+	`FASTFREE
+(
+tim”
+);
+
+302 
 	}
 }
 
-272 
+310 
 	$maš
  (
 ¬gc
@@ -26181,13 +26389,17 @@ tim”
 ¬gv
 [])
 
-283 
+320 
+time_–a¥ed_š_us
+ = 0;
+
+324 
 simu_·¿s_t
  
 ¥t
 ;
 
-284 
+325 
 ¥t
 .
 t
@@ -26195,7 +26407,7 @@ t
 ·ck‘_size
  = 100;
 
-285 
+326 
 ¥t
 .
 ¾
@@ -26203,7 +26415,7 @@ t
 lšk_di¡ªû
  = 0;
 
-286 
+327 
 ¥t
 .
 ¾
@@ -26213,7 +26425,7 @@ lšk_di¡ªû
 	`MS2US
 (270);
 
-287 
+328 
 ¥t
 .
 ¾
@@ -26221,7 +26433,7 @@ lšk_di¡ªû
 lšk_bªdwidth
  = 1024;
 
-288 
+329 
 ¥t
 .
 ¾
@@ -26229,7 +26441,7 @@ lšk_bªdwidth
 ³r
  = 10;
 
-290 
+331 
 ¥t
 .
 tx_d–ay
@@ -26237,7 +26449,7 @@ tx_d–ay
 OCTET
  *
 
-291 (
+332 (
 ¥t
 .
 t
@@ -26245,15 +26457,15 @@ t
 ·ck‘_size
  +
 
-292 
+333 
 MAC_HEADER_SIZE
  +
 
-293 
+334 
 PHY_HEADER_SIZE
 ))
 
-294 / 
+335 / 
 ¥t
 .
 ¾
@@ -26261,7 +26473,7 @@ PHY_HEADER_SIZE
 lšk_bªdwidth
  );
 
-298 
+339 
 ¥t
 .
 ¾c_·¿s
@@ -26273,7 +26485,7 @@ t_ReÜd”šg
 	`MS2US
 (5);
 
-299 
+340 
 ¥t
 .
 ¾c_·¿s
@@ -26283,7 +26495,7 @@ ump
 UM_Wšdow_Size
  = 512;
 
-300 
+341 
 ¥t
 .
 ¾c_·¿s
@@ -26293,13 +26505,13 @@ ump
 ¢_F›ldL’gth
  = 10;
 
-302 
+343 
 	#PTIMER_MEM_MAX
- 128
+ 4096
 
 	)
 
-303 
+344 
 ¥t
 .
 g_mem_±im”_t
@@ -26309,9 +26521,9 @@ g_mem_±im”_t
 ±im”_t
 ), 
 PTIMER_MEM_MAX
-, 0, 1000);
+, 0, 100);
 
-304 
+345 
 	`as£¹
 (
 ¥t
@@ -26319,7 +26531,7 @@ PTIMER_MEM_MAX
 g_mem_±im”_t
 );
 
-311 
+352 
 zlog_deçuÉ
  = 
 	`Ý’zlog
@@ -26327,11 +26539,11 @@ zlog_deçuÉ
 ZLOG_STDOUT
 );
 
-312 
+353 
 	`ZLOG_DEBUG
 ("pkt size = %d,…rop delay = %d,†ink bandwidth = %d," \
 
-313 "tx d–ay = %d\n", 
+354 "tx d–ay = %d\n", 
 ¥t
 .
 t
@@ -26343,7 +26555,7 @@ t
 ´Ý_d–ay
 ,
 
-314 
+355 
 ¥t
 .
 ¾
@@ -26353,53 +26565,77 @@ lšk_bªdwidth
 tx_d–ay
 );
 
-318 
+359 
 ±im”_t
  
 simu_begš_tim”
  = {
 
-319 .
+360 .
 du¿tiÚ
  = 0,
 
-320 .
+361 .
 Úexpœed_func
  = 
 simu_begš_ev’t
 ,
 
-321 .
+362 .
 ·¿m
 [0] = (*è&
 ¥t
 ,
 
-322 .
+363 .
 ·¿m
 [1] = (*è
 SIMU_BEGIN
 ,
 
-326 
+367 
 	`¾c_š™
 ();
 
-327 
+368 
 	`¾c_tim”_¡¬t
 (&
 simu_begš_tim”
 );
 
-330 !
+371 
+¡•_š_us
+ = 1;
+
+372 !
 g_is_fšished
-) {
+ && 
+time_–a¥ed_š_us
+ <ð
+	`MS2US
+(
+	`S2MS
+(1000))) {
 
-331 
+373 
 	`¾c_tim”_push
-(1);
+(
+¡•_š_us
+);
 
-335 
+374 
+time_–a¥ed_š_us
+ +ð
+¡•_š_us
+;
+
+376 
+	`ZLOG_DEBUG
+("time_–a¥ed_š_u ð%d\n", 
+time_–a¥ed_š_us
+);
+
+379 
 	}
 }
 
