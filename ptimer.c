@@ -221,6 +221,8 @@ int ptimer_init(ptimer_table_t *table, u16 allslots)
 	}
 	
 	table->table = malloc(sizeof(dllist_node_t) * vpower);
+	assert(table->table);
+	
 	table->allslots = vpower;
 	table->curslot = 0;
 	

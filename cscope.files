@@ -15,4 +15,5 @@ rlc.h
 rlc_pdu.h
 rlc_tm.c
 rlc_um.c
+simu_um_mode.c
 stdtypes.h

@@ -12,6 +12,7 @@
 
 #include "rlc.h"
 #include "log.h"
+#include "fastalloc.h"
 
 #define FINISHED 1
 #define NOT_FINISHED 0
@@ -120,7 +121,8 @@ typedef struct {
 		rlc_entity_um_t um_rx;
 		rlc_entity_am_t am_rx;
 	} rlc_rx;
-	
+
+	fastalloc_t *g_mem_ptimer_t; /* as the timer event memory pool. */
 } simu_paras_t;
 
 /* convert ms to us */
@@ -152,9 +154,16 @@ void mac_free_sdu(void *data, void *cookie)
 	free(data);
 }
 
+void simu_end_event(void *timer, void* arg1, void* arg2);
+void pkt_rx_end_event(void *timer, void* arg1, void* arg2);
+void pkt_tx_begin_event(void *timer, void* arg1, void* arg2);
+void pkt_tx_end_event(void *timer, void* arg1, void* arg2);
+
 /* simulation events */
 void simu_begin_event(void *timer, void* arg1, void* arg2)
 {
+	/* FIXME: mac_free_pdu, mac_free_sdu */
+
 	/*
 	  1. init the RLC entity (tx entity / rx entity)
 	  2. set the sink function of the rx entity
@@ -170,18 +179,34 @@ void simu_begin_event(void *timer, void* arg1, void* arg2)
 				pspt->rlc_paras.ump.t_Reordering, \
 				mac_free_pdu, mac_free_sdu);
 
+	/* 2. */
+	rlc_um_set_deliv_func(&pspt->rlc_tx.um_tx, sink);
+
 	/* @receiver */
 	rlc_um_init(&(pspt->rlc_rx.um_rx), pspt->rlc_paras.ump.sn_FieldLength, \
 				pspt->rlc_paras.ump.UM_Window_Size, \
 				pspt->rlc_paras.ump.t_Reordering, \
 				mac_free_pdu /* ? */, mac_free_sdu /* ? */);
 
+	/* 2. */
+	rlc_um_set_deliv_func(&pspt->rlc_rx.um_rx, sink);
 
 
-	g_is_finished = FINISHED;
+	/* 3. */
+	ptimer_t *pkt_tx_begin = (ptimer_t*)FASTALLOC(pspt->g_mem_ptimer_t);
+	assert(pkt_tx_begin);
+	pkt_tx_begin->duration = 0;
+	/* pkt_tx_begin->onexpired_func = pkt_tx_begin_event; */
+	/* pkt_tx_begin->param[0] = (void*) pspt; */
+	/* pkt_tx_begin->param[1] = NULL; */
+	
+	// rlc_timer_start(pkt_tx_begin);
+	
+	g_is_finished = FINISHED;	
+
 }
 
-void simu_end_event(void *timer, u32 arg1, u32 arg2)
+void simu_end_event(void *timer, void* arg1, void* arg2)
 {
 	/* FIXME:
 	   arg1? arg2?
@@ -199,7 +224,7 @@ void simu_end_event(void *timer, u32 arg1, u32 arg2)
 	g_is_finished = FINISHED;
 }
 
-void pkt_rx_end_event(void *timer, u32 arg1, u32 arg2)
+void pkt_rx_end_event(void *timer, void* arg1, void* arg2)
 {
 	/*
 	  if (BER is on && BER(packet) == discard) {
@@ -209,7 +234,7 @@ void pkt_rx_end_event(void *timer, u32 arg1, u32 arg2)
 	 */
 }
 
-void pkt_tx_begin_event(void *timer, u32 arg1, u32 arg2)
+void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 {
 	/*
 	  1. get a @packet from the RLC UM entity TX
@@ -218,9 +243,11 @@ void pkt_tx_begin_event(void *timer, u32 arg1, u32 arg2)
 	  4. generate the packet tx end event for this packet
 	  5. put this packet tx end event to the timer queue
 	 */
+	ZLOG_DEBUG("going to be finished!\n");
+	g_is_finished = FINISHED;
 }
 
-void pkt_tx_end_event(void *timer, u32 arg1, u32 arg2)
+void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
 {
 	/*
 	  1. set this @packet's tx end timestamp = current simu time
@@ -271,7 +298,10 @@ int main (int argc, char *argv[])
 	spt.rlc_paras.ump.t_Reordering = MS2US(5); /* 5 ms */
 	spt.rlc_paras.ump.UM_Window_Size = 512;	   /* window size */
 	spt.rlc_paras.ump.sn_FieldLength = 10;	   /* sn length */
-	
+
+#define PTIMER_MEM_MAX 4096
+	spt.g_mem_ptimer_t = fastalloc_create(sizeof(ptimer_t), PTIMER_MEM_MAX, 0, 100);
+	assert(spt.g_mem_ptimer_t);
 	
 	/* @transmitter */
 	/* @receiver */
@@ -289,7 +319,7 @@ int main (int argc, char *argv[])
 		.duration = 0,
 		.onexpired_func = simu_begin_event,
 		.param[0] = (void*) &spt,
-		.param[1] = SIMU_BEGIN,
+		.param[1] = (void*) SIMU_BEGIN,
 	};
 
 	/* 3. */
@@ -303,5 +333,10 @@ int main (int argc, char *argv[])
 
 	return 0;
 }
+
+
+
+
+
 
 

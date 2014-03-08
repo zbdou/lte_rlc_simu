@@ -89,21 +89,21 @@ void rlc_init()
 	/* init timer */
 	ptimer_init(&rlc_timerbase, RLC_TIMER_NSLOT);
 
-	/* init memory pool */
-	g_mem_sdu_base = fastalloc_create(sizeof(rlc_sdu_t), RLC_MEM_SDU_MAX, 0, 1000);
-	assert(g_mem_sdu_base);
+	/* /\* init memory pool *\/ */
+	/* g_mem_sdu_base = fastalloc_create(sizeof(rlc_sdu_t), RLC_MEM_SDU_MAX, 0, 1000); */
+	/* assert(g_mem_sdu_base); */
 
-	g_mem_um_pdu_base = fastalloc_create(sizeof(rlc_um_pdu_t), RLC_MEM_UM_PDU_MAX, 0, 1000);
-	assert(g_mem_sdu_base);
+	/* g_mem_um_pdu_base = fastalloc_create(sizeof(rlc_um_pdu_t), RLC_MEM_UM_PDU_MAX, 0, 1000); */
+	/* assert(g_mem_sdu_base); */
 
-	g_mem_am_pdu_seg_base = fastalloc_create(sizeof(rlc_am_pdu_segment_t), RLC_MEM_AM_PDU_SEG_MAX, 0, 1000);
-	assert(g_mem_sdu_base);
+	/* g_mem_am_pdu_seg_base = fastalloc_create(sizeof(rlc_am_pdu_segment_t), RLC_MEM_AM_PDU_SEG_MAX, 0, 1000); */
+	/* assert(g_mem_sdu_base); */
 
-	g_mem_am_pdu_rx_base = fastalloc_create(sizeof(rlc_am_rx_pdu_ctrl_t), RLC_MEM_AM_PDU_RX_MAX, 0, 1000);
-	assert(g_mem_sdu_base);
+	/* g_mem_am_pdu_rx_base = fastalloc_create(sizeof(rlc_am_rx_pdu_ctrl_t), RLC_MEM_AM_PDU_RX_MAX, 0, 1000); */
+	/* assert(g_mem_sdu_base); */
 
-	g_mem_am_pdu_tx_base = fastalloc_create(sizeof(rlc_am_tx_pdu_ctrl_t), RLC_MEM_AM_PDU_TX_MAX, 0, 1000);
-	assert(g_mem_sdu_base);
+	/* g_mem_am_pdu_tx_base = fastalloc_create(sizeof(rlc_am_tx_pdu_ctrl_t), RLC_MEM_AM_PDU_TX_MAX, 0, 1000); */
+	/* assert(g_mem_sdu_base); */
 }
 
 

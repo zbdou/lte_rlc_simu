@@ -89,7 +89,7 @@ fastalloc_t *fastalloc_create(u32 elemt_size, u32 elemt_num, u32 alignment_bits,
 	fastalloc_t *base;
 	int i;
 	size_t data_addr;
-	u32 byte_alignment;
+	size_t byte_alignment;
 	
 	/* process parameter */
 	if(elemt_size <= 0 || elemt_num <= 0)
