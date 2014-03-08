@@ -81,9 +81,14 @@ void fastalloc_destroy(fastalloc_t *base)
 /***********************************************************************************/
 fastalloc_t *fastalloc_create(u32 elemt_size, u32 elemt_num, u32 alignment_bits, u32 max_history)
 {
+	/*
+	  zbdou:
+	  assume byte_alignment = FASTALLOC_DEFAULT_BYTE_ALIGNMENT = 31
+	  byte_alignment = 31 = 0x0000, 0001f = 0000,0000, 0000,0000, 0000,0000, 0001, 1111 
+	 */
 	fastalloc_t *base;
 	int i;
-	u32 data_addr;
+	size_t data_addr;
 	u32 byte_alignment;
 	
 	/* process parameter */
@@ -91,10 +96,11 @@ fastalloc_t *fastalloc_create(u32 elemt_size, u32 elemt_num, u32 alignment_bits,
 		return NULL;
 	
 	if(alignment_bits <= 0 || alignment_bits > 10)
-		byte_alignment = FASTALLOC_DEFAULT_BYTE_ALIGNMENT;
+		byte_alignment = FASTALLOC_DEFAULT_BYTE_ALIGNMENT; /* = 31 */
 	else
 		byte_alignment = 0xFFFFFFFF >> (32-alignment_bits);
-		
+
+	/* zbdou: truncted */
 	elemt_size = (elemt_size + byte_alignment) & (~byte_alignment);
 		
 #if FASTALLOC_TRACK_LEVEL >= FASTALLOC_HISTORY
@@ -125,7 +131,7 @@ fastalloc_t *fastalloc_create(u32 elemt_size, u32 elemt_num, u32 alignment_bits,
 		return NULL;
 	}
 	
-	data_addr = (u32)(base->bufptr + byte_alignment);
+	data_addr = (size_t)(base->bufptr + byte_alignment);
 	data_addr = data_addr & (~byte_alignment);
 	base->elemt_base = (u8 *)data_addr;
 	base->sp = elemt_num - 1;
@@ -258,7 +264,7 @@ void fastalloc_free(fastalloc_t *base, void *data)
 		return;
 	}
 	
-	if((u32)elemt & base->byte_align)
+	if((size_t)elemt & base->byte_align)
 	{
 		ZLOG_ERR("invalid data address: %p\n", data);
 		return;
@@ -281,7 +287,7 @@ void fastalloc_free(fastalloc_t *base, void *data)
 	base->elemt_info[elemt_index].filename = filename;
 #endif
 
-	base->elemt_stack[base->sp] = (u32)elemt;
+	base->elemt_stack[base->sp] = (size_t)elemt;
 	base->free_cnt ++;
 	base->sp ++;
 	

@@ -285,6 +285,8 @@ int main (int argc, char *argv[])
 
 	/* FIXME: fastalloc.c, always think the addr is 32 bits! wrong! */
 
+	ZLOG_DEBUG("size_t = %ld\n", sizeof(size_t));
+	
 	return 0;
 }
 

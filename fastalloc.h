@@ -63,7 +63,7 @@ typedef struct fastalloc
 	
 	u8 *bufptr;
 	u8 *elemt_base;
-	u32 *elemt_stack;
+	size_t *elemt_stack;
 	u32 sp;
 	
 	u32 alloc_cnt;
