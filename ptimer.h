@@ -32,7 +32,7 @@
 #define PTIMER_FLAG_PERIODIC 0x02
 
 
-typedef void (*onexpired_func_t)(void *, u32, u32);
+typedef void (*onexpired_func_t)(void *, void*, void*);
 
 /* timer */
 typedef struct ptimer
@@ -42,7 +42,7 @@ typedef struct ptimer
 	u32 duration;
 	u32 remainder;
 	onexpired_func_t onexpired_func;
-	u32 param[2];
+	void* param[2];
 }ptimer_t;
 
 

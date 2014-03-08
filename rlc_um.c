@@ -102,7 +102,7 @@ void rlc_um_pdu_free(rlc_um_pdu_t *pdu)
 /* ---------------------|----|-----------------------------------------------------*/
 /*   Return             |    | N/A                                                 */
 /***********************************************************************************/
-static void t_Reordering_um_func(void *timer, u32 arg1, u32 arg2)
+static void t_Reordering_um_func(void *timer, void* arg1, void* arg2)
 {
 	rlc_entity_um_rx_t *umrx = (rlc_entity_um_rx_t *)arg1;
 	u16 sn, sn_fs;
@@ -743,7 +743,7 @@ void rlc_um_init(rlc_entity_um_t *rlc_um, int sn_bits, u32 UM_Window_Size, u32 t
 	rlc_um->umrx.UM_Window_Size = UM_Window_Size;
 	rlc_um->umrx.t_Reordering.duration = t_Reordering;
 	rlc_um->umrx.t_Reordering.onexpired_func = t_Reordering_um_func;
-	rlc_um->umrx.t_Reordering.param[0] = (u32)&rlc_um->umrx;
+	rlc_um->umrx.t_Reordering.param[0] = (void*)&rlc_um->umrx;
 	rlc_um->umrx.t_Reordering.param[1] = 0;
 
 	rlc_um->umrx.free_pdu = free_pdu;

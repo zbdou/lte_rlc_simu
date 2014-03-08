@@ -105,7 +105,7 @@ void decode_rlc_am_status_pdu(u8 *pdu, u32 nByte)
 	u32 e1;
 	nacksn_info_t ninfo[MAXINFO_NUM];
 	u8 *buf_ptr = pdu;
-	u16 nack_sn;
+	// u16 nack_sn;
 	
 	am_pdu = (rlc_am_status_pdu_head_t *)pdu;
 	printf("AM Status PDU: CPT=%u ACK_SN=%u E1=%u\n", am_pdu->cpt, am_pdu->ack_sn, am_pdu->e1);
@@ -123,7 +123,7 @@ void decode_rlc_am_status_pdu(u8 *pdu, u32 nByte)
 			bit_offset -= 32;
 		}
 		e1 = ninfo[n].nacksn.e1;
-		nack_sn = ninfo[n].nacksn.nack_sn;
+		// nack_sn = ninfo[n].nacksn.nack_sn;
 
 		if(ninfo[n].nacksn.e2)
 		{

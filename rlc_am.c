@@ -71,7 +71,7 @@ extern fastalloc_t *g_mem_am_pdu_tx_base;
 /* ---------------------|----|-----------------------------------------------------*/
 /*   Return             |    | N/A                                                 */
 /***********************************************************************************/
-static void t_Reordering_am_func(void *timer, u32 arg1, u32 arg2)
+static void t_Reordering_am_func(void *timer, void* arg1, void* arg2)
 {
 	rlc_entity_am_rx_t *amrx = (rlc_entity_am_rx_t *)arg1;
 	u32 sn;
@@ -116,7 +116,7 @@ static void t_Reordering_am_func(void *timer, u32 arg1, u32 arg2)
 /* ---------------------|----|-----------------------------------------------------*/
 /*   Return             |    | N/A                                                 */
 /***********************************************************************************/
-static void t_PollRetransmit_func(void *timer, u32 arg1, u32 arg2)
+static void t_PollRetransmit_func(void *timer, void* arg1, void* arg2)
 {
 	rlc_entity_am_tx_t *amtx = (rlc_entity_am_tx_t *)arg1;
 	u16 sn;
@@ -172,7 +172,7 @@ static void t_PollRetransmit_func(void *timer, u32 arg1, u32 arg2)
 /* ---------------------|----|-----------------------------------------------------*/
 /*   Return             |    | N/A                                                 */
 /***********************************************************************************/
-static void t_StatusProhibit_func(void *timer, u32 arg1, u32 arg2)
+static void t_StatusProhibit_func(void *timer, void* arg1, void* arg2)
 {
 	rlc_entity_am_tx_t *amtx = (rlc_entity_am_tx_t *)arg1;
 	
@@ -190,7 +190,7 @@ static void t_StatusProhibit_func(void *timer, u32 arg1, u32 arg2)
 /* ---------------------|----|-----------------------------------------------------*/
 /*   Return             |    | N/A                                                 */
 /***********************************************************************************/
-static void t_StatusPdu_func(void *timer, u32 arg1, u32 arg2)
+static void t_StatusPdu_func(void *timer, void* arg1, void* arg2)
 {
 	rlc_entity_am_rx_t *amrx = (rlc_entity_am_rx_t *)arg1;
 	
@@ -244,10 +244,10 @@ void rlc_am_init(rlc_entity_am_t *rlc_am,
 	rlc_am->amrx.VR_MR = rlc_am->amrx.VR_R + rlc_am->amrx.AM_Window_Size;
 	rlc_am->amrx.t_Reordering.duration = t_Reordering;
 	rlc_am->amrx.t_Reordering.onexpired_func = t_Reordering_am_func;
-	rlc_am->amrx.t_Reordering.param[0] = (u32)&rlc_am->amrx;
+	rlc_am->amrx.t_Reordering.param[0] = (void*)&rlc_am->amrx;
 	rlc_am->amrx.t_StatusPdu.duration = t_StatusPdu;
 	rlc_am->amrx.t_StatusPdu.onexpired_func = t_StatusPdu_func;
-	rlc_am->amrx.t_StatusPdu.param[0] = (u32)&rlc_am->amrx;
+	rlc_am->amrx.t_StatusPdu.param[0] = (void*)&rlc_am->amrx;
 	rlc_am->amrx.free_pdu = free_pdu;
 	rlc_am->amrx.free_sdu = free_sdu;
 	dllist_init(&(rlc_am->amrx.sdu_assembly_q));
@@ -259,10 +259,10 @@ void rlc_am_init(rlc_entity_am_t *rlc_am,
 	rlc_am->amtx.VT_MS = rlc_am->amtx.VT_S + rlc_am->amtx.AM_Window_Size;
 	rlc_am->amtx.t_PollRetransmit.duration = t_PollRetransmit;
 	rlc_am->amtx.t_PollRetransmit.onexpired_func = t_PollRetransmit_func;
-	rlc_am->amtx.t_PollRetransmit.param[0] = (u32)&rlc_am->amtx;
+	rlc_am->amtx.t_PollRetransmit.param[0] = (void*)&rlc_am->amtx;
 	rlc_am->amtx.t_StatusProhibit.duration = t_StatusProhibit;
 	rlc_am->amtx.t_StatusProhibit.onexpired_func = t_StatusProhibit_func;
-	rlc_am->amtx.t_StatusProhibit.param[0] = (u32)&rlc_am->amtx;
+	rlc_am->amtx.t_StatusProhibit.param[0] = (void*)&rlc_am->amtx;
 	rlc_am->amtx.maxRetxThreshold = maxRetxThreshold;
 	rlc_am->amtx.pollPDU = pollPDU;
 	rlc_am->amtx.pollByte = pollByte;
@@ -1343,6 +1343,7 @@ int rlc_am_tx_build_fresh_pdu(rlc_entity_am_tx_t *amtx, u8 *buf_ptr, u16 pdu_siz
 	rlc_am_tx_update_poll(amtx, 0, data_size);
 	pdu_head->p = rlc_am_tx_deliver_poll(amtx);
 
+	/*
 	ZLOG_DEBUG("fresh build: lcid=%d poll=%u fi=%u n_li=%u li_s=(%u %u %u ..)\n", 
 			   amtx->logical_chan, pdu_head->p, pdu_head->fi, pdu_ctrl->n_li, 
 			   pdu_ctrl->li_s[0], pdu_ctrl->li_s[1], pdu_ctrl->li_s[2]);
@@ -1350,6 +1351,7 @@ int rlc_am_tx_build_fresh_pdu(rlc_entity_am_tx_t *amtx, u8 *buf_ptr, u16 pdu_siz
 	ZLOG_DEBUG("after build: lcid=%d pdu_size=%u poll=%d VT_A=%u VT_S=%u VT_MS=%u POLL_SN=%u\n", 
 			   amtx->logical_chan, data_ptr-pdu_ctrl->buf_ptr, pdu_head->p, 
 			   amtx->VT_A, amtx->VT_S, amtx->VT_MS, amtx->POLL_SN);
+	*/
 	
 	return pdu_ctrl->pdu_size;
 }
