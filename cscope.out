@@ -1,4 +1,4 @@
-cscope 15 $HOME/lte_rlc_simu -q 0000002143 0000253189
+cscope 15 $HOME/lte_rlc_simu -q 0000002143 0000253204
 	@bitcpy.c
 
 5 
@@ -4254,7 +4254,7 @@ i
 ;
 
 91 
-u32
+size_t
  
 d©a_addr
 ;
@@ -4420,7 +4420,7 @@ NULL
 134 
 d©a_addr
  = (
-u32
+size_t
 )(
 ba£
 ->
@@ -4894,7 +4894,7 @@ d©a
 );
 
 267 if((
-u32
+size_t
 )
 –emt
  & 
@@ -4996,7 +4996,7 @@ ba£
 [ba£->
 ¥
 ] = (
-u32
+size_t
 )
 –emt
 ;
@@ -5226,7 +5226,7 @@ u8
 ;
 
 66 
-u32
+size_t
  *
 	m–emt_¡ack
 ;

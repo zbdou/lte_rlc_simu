@@ -85,14 +85,14 @@ typedef struct {
 } radio_link_t;
 
 typedef struct {
-	u32 t_Reodering;			/* in us */
+	u32 t_Reordering;			/* in us */
 	u32 UM_Window_Size;
 	u32 sn_FieldLength;
 } um_mode_paras_t;
 
 
 typedef struct {
-	u32 t_Reodering;
+	u32 t_Reordering;
 	u32 t_StatusProhibit;
 	u32 t_PollRetransmit;
 
@@ -141,25 +141,43 @@ void sink(struct rlc_entity_um_rx *umrx, rlc_sdu_t* sdu)
 }
 
 
+void mac_free_pdu(void *data, void *cookie)
+{
+	free(cookie);
+}
+
+
+void mac_free_sdu(void *data, void *cookie)
+{
+	free(data);
+}
+
 /* simulation events */
 void simu_begin_event(void *timer, void* arg1, void* arg2)
 {
-	/* FIXME:
-	   arg1? arg2?
-	*/
-	simu_paras_t *pspt = (simu_paras_t*) arg1;
-
-	ZLOG_DEBUG("pspt. t_Reodering = %d\n", pspt->rlc_paras.ump.t_Reodering);
-	
-
 	/*
-	  1. initialization the simulation parameters
-	  2. set the simulation mode (UM mode or AM mode)
-	  3. init the RLC entity (tx entity / rx entity)
-	  4. set the sink function of the rx entity
-	  5. generate the tx begin event at time 0?
-	  6. put the packet tx begin event into the event timer queue  
+	  1. init the RLC entity (tx entity / rx entity)
+	  2. set the sink function of the rx entity
+	  3. generate the tx begin event at time 0?
+	  4. put the packet tx begin event into the event timer queue  
 	 */
+	simu_paras_t *pspt = (simu_paras_t*) arg1;
+	
+	/* 1. */
+	/* @transmitter */
+	rlc_um_init(&(pspt->rlc_tx.um_tx), pspt->rlc_paras.ump.sn_FieldLength, \
+				pspt->rlc_paras.ump.UM_Window_Size, \
+				pspt->rlc_paras.ump.t_Reordering, \
+				mac_free_pdu, mac_free_sdu);
+
+	/* @receiver */
+	rlc_um_init(&(pspt->rlc_rx.um_rx), pspt->rlc_paras.ump.sn_FieldLength, \
+				pspt->rlc_paras.ump.UM_Window_Size, \
+				pspt->rlc_paras.ump.t_Reordering, \
+				mac_free_pdu /* ? */, mac_free_sdu /* ? */);
+
+
+
 	g_is_finished = FINISHED;
 }
 
@@ -250,9 +268,9 @@ int main (int argc, char *argv[])
 
 
 	/* rlc params */
-	spt.rlc_paras.ump.t_Reodering = MS2US(5); /* 5 ms */
-	spt.rlc_paras.ump.UM_Window_Size = 512;
-	spt.rlc_paras.ump.sn_FieldLength = 10;
+	spt.rlc_paras.ump.t_Reordering = MS2US(5); /* 5 ms */
+	spt.rlc_paras.ump.UM_Window_Size = 512;	   /* window size */
+	spt.rlc_paras.ump.sn_FieldLength = 10;	   /* sn length */
 	
 	
 	/* @transmitter */
@@ -271,7 +289,7 @@ int main (int argc, char *argv[])
 		.duration = 0,
 		.onexpired_func = simu_begin_event,
 		.param[0] = (void*) &spt,
-		.param[1] = 0,
+		.param[1] = SIMU_BEGIN,
 	};
 
 	/* 3. */
@@ -280,13 +298,9 @@ int main (int argc, char *argv[])
 
 	/* 4. */
 	while (!g_is_finished) {
-		rlc_timer_push(1);		/* 1 time unit */
+		rlc_timer_push(1);		/* 1 us */
 	}
 
-	/* FIXME: fastalloc.c, always think the addr is 32 bits! wrong! */
-
-	ZLOG_DEBUG("size_t = %ld\n", sizeof(size_t));
-	
 	return 0;
 }
 
