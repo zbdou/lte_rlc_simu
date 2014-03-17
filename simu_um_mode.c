@@ -18,6 +18,9 @@
 #define NOT_FINISHED 0
 int g_is_finished = NOT_FINISHED;
 
+#define MAC_UL_LCID_CCCH 0x01
+#define MAC_DL_LCID_CCCH 0x02
+
 /* simulation input parameters */
 /* @transmitter */
 /* @receiver */
@@ -249,6 +252,101 @@ void pkt_rx_end_event(void *timer, void* arg1, void* arg2)
 	 */
 }
 
+u8* rlc_create_sdu(u16 size)
+{
+	int i;
+	u8* buf = (u8*) malloc(size);
+	assert (buf);
+	for(i = 0; i < size; i++)
+		buf[i] = 0xee;
+	
+	return buf;
+}
+
+#pragma pack(1)
+
+typedef struct mac_pdu_subhead
+{
+	u32 r:2;
+	u32 e:1;
+	u32 lc_id:5;
+	u32 f:1;
+	u32 l:15;
+}mac_pdu_subhead_t;
+
+#pragma pack()
+
+void *mac_alloc_buf(u32 size)
+{
+	return malloc(size);
+}
+
+/*
+  OUT, mac_pdu
+  OUT, mac_pdu_size
+  OUT, buf = cookie
+ */
+#define RESERVE_SPACE 100
+int mac_build_pdu(rlc_entity_um_t* rlc_um, u8 **mac_pdu, u32 *mac_pdu_size, u8 **buf)
+{
+	rlc_entity_um_tx_t* rlc_umtx = NULL;
+	u8 *pdu, *cookie;
+	mac_pdu_subhead_t *mac_subhead = NULL;
+	u32 headsize, offset = 0;
+	u32 padding = 0;
+
+	u32 final_rlc_pdu_size = 0, rlc_pdu_size = 0;
+
+	*mac_pdu_size = 0;
+	rlc_umtx = &(rlc_um->umtx);
+	rlc_pdu_size = rlc_um_tx_estimate_pdu_size(rlc_umtx);
+	
+	if(rlc_pdu_size == 0) return 0;
+	cookie = (u8*) mac_alloc_buf(rlc_pdu_size + 1 + RESERVE_SPACE);
+	assert(cookie);
+
+	final_rlc_pdu_size = rlc_um_tx_build_pdu(rlc_umtx, cookie + RESERVE_SPACE, rlc_pdu_size);
+	if(final_rlc_pdu_size == 0) {
+		free(cookie);
+		return 0;
+	}
+
+	rlc_pdu_size = final_rlc_pdu_size;
+	headsize = 1;
+	assert(headsize < RESERVE_SPACE);
+	pdu = cookie + RESERVE_SPACE - headsize;
+
+	mac_subhead = (mac_pdu_subhead_t *) (pdu + offset);
+	mac_subhead->r = 0;
+	mac_subhead->e = (padding == 2);
+	mac_subhead->lc_id = MAC_UL_LCID_CCCH;
+	
+	/* no padding */
+	offset++;
+
+	*mac_pdu = pdu;
+	*mac_pdu_size = rlc_pdu_size + 1;
+	*buf = cookie;
+	
+	return 1;
+}
+
+
+void macrlc_dump_buffer(u8 *buffer, u16 length)
+{
+	int i;
+	
+	for(i=0; i<length; i++)
+	{
+		if(i%16 == 0)
+			printf("\n");
+		else if(i%8 == 0)
+			printf("-- ");
+		printf("%02x ", buffer[i]);
+	}
+	printf("\n");
+}
+
 /*
   @arg1 in pointer to the simu_paras_t struct
   @arg2 in event type ( = PKT_TX_BEGIN)
@@ -261,11 +359,29 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 	  3. generate the packet tx end event for this packet
 	  4. put this packet tx end event to the timer queue
 	 */
+	u8 *mac_pdu, *buffer;
+	u32 mac_pdu_size;
+	
 	simu_paras_t *pspt = (simu_paras_t*) arg1;
 	assert((event_type_t)arg2 == PKT_TX_BEGIN);
 
 	/* 1. */
 	/* 2. */
+	u8* sdu_ptr = rlc_create_sdu(pspt->t.packet_size);
+	rlc_um_tx_sdu_enqueue(&(pspt->rlc_tx.um_tx.umtx), sdu_ptr, pspt->t.packet_size, NULL);
+
+	/* FIXME: TBD */
+
+	/* call mac_build_pdu variant */
+	if( mac_build_pdu(&(pspt->rlc_tx.um_tx), &mac_pdu, &mac_pdu_size, &buffer) == 0 ) {
+		ZLOG_ERR("failed to build MAC PDU\n");
+		return;
+	}
+	ZLOG_DEBUG("Rx PDU length=%u.\n", mac_pdu_size);
+	macrlc_dump_buffer(mac_pdu, mac_pdu_size);
+
+	/* duplicate this mac pdu by *malloc* */
+	
 	
 
 
@@ -283,10 +399,10 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 	rlc_timer_start(pkt_tx_end);
 
 		
-	/*
+
 	ZLOG_DEBUG("going to be finished!\n");
 	g_is_finished = FINISHED;
-	*/
+
 	FASTFREE(pspt->g_mem_ptimer_t, timer);
 }
 
@@ -330,6 +446,8 @@ void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
 /* AM mode: RX, t-Reordering */
 /* UM mode: RX, t-Reordering */
 
+/* current simulation time, in us */
+int g_time_elasped_in_us = 0;
 
 int main (int argc, char *argv[])
 {
@@ -341,9 +459,6 @@ int main (int argc, char *argv[])
 	        advance the simu time by 1 time unit (ms)
 	     }
 	 */
-	int time_elasped_in_us = 0;
-	
-	
 	/* 1. */
 	simu_paras_t spt;
 	spt.t.packet_size = 100;	/* 100 bytes */
@@ -396,9 +511,9 @@ int main (int argc, char *argv[])
 	// while (!g_is_finished && time_elasped_in_us <= MS2US(S2MS(1000))) {
 	while (!g_is_finished) {		
 		rlc_timer_push(step_in_us);		/* us */
-		time_elasped_in_us += step_in_us;
+		g_time_elasped_in_us += step_in_us;
 	}
-	ZLOG_DEBUG("time_elasped_in_us = %d\n", time_elasped_in_us);
+	ZLOG_DEBUG("time_elasped_in_us = %d\n", g_time_elasped_in_us);
 
 	return 0;
 }

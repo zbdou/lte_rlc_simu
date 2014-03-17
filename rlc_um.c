@@ -296,6 +296,8 @@ int rlc_um_tx_build_pdu(rlc_entity_um_tx_t *umtx, u8 *buf_ptr, u16 pdu_size)
 	data_ptr = (u8 *)li_ptr + ((pdu.n_li-1)>>1)*3;
 	if((pdu.n_li & 0x01) == 0)
 		data_ptr += 2;
+
+	/* data_ptr is updated in the rlc_encode_sdu */
 	data_size = rlc_encode_sdu(data_ptr, pdu.n_li, pdu.li_s, &umtx->sdu_tx_q);
 	data_ptr += (data_size & 0xFFFF);
 	umtx->sdu_total_size -= (data_size & 0xFFFF);
