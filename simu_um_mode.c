@@ -15,57 +15,10 @@
 #include "log.h"
 #include "fastalloc.h"
 
-#define FINISHED 1
-#define NOT_FINISHED 0
-int g_is_finished = NOT_FINISHED;
+#include "simu_um_mode.h"
 
 #define MAC_UL_LCID_CCCH 0x01
 #define MAC_DL_LCID_CCCH 0x02
-
-/* current simulation time, in us */
-int g_time_elasped_in_us = 0;
-
-/* simulation input parameters */
-/* @transmitter */
-/* @receiver */
-/* @radio link */
-/* @traffic */
-/* @derived */
-
-
-/* simulation events */
-typedef enum {
-	SIMU_BEGIN,
-	PKT_TX_BEGIN,
-	PKT_TX_END,
-	PKT_RX_END,
-	RLC_T_REORDERING,
-	RLC_T_POLL_RX,
-	RLC_T_STATUS_PROHIBIT,
-	SIMU_END,
-} event_type_t;
-
-typedef struct {
-	dllist_node_t node;			/* must be the first. */
-	
-	u32 sequence_no;			/* sequence number (derived from rlc seq.) */
-	u32 packet_size;			/* in bytes */
-
-	u8* mac_pdu;				/* pointer to the mac pdu */
-	u32 mac_pdu_size;
-	u8* buffer;
-	
-	/* statistics */
-	u32 tx_begin_timestamp;
-	u32 tx_end_timestamp;
-	u32 rx_deliver_timestamp;
-	u32 jitter;
-} packet_t;
-
-/* packet list used at the sink */
-dllist_node_t g_sink_packet_list;
-
-
 
 typedef enum {
 	RLC_AM,
@@ -142,6 +95,16 @@ typedef struct {
 /* convert ms to us */
 #define MS2US(xms) (1e3*xms)
 
+
+/* current simulation time, in us */
+int g_time_elasped_in_us = 0;
+
+int g_is_finished = NOT_FINISHED;
+
+/* packet list used at the sink */
+dllist_node_t g_sink_packet_list;
+
+
 /* forward declaration */
 void simu_end_event(void *timer, void* arg1, void* arg2);
 void pkt_rx_end_event(void *timer, void* arg1, void* arg2);
@@ -160,8 +123,11 @@ void sink(struct rlc_entity_um_rx *umrx, rlc_sdu_t* sdu)
 	  1. update this packet’s end to end delay (received time = the current simulation time)
 	  2. put this packet to the received packet list @g_sink_packet_list
 	*/
+	ZLOG_DEBUG("SSSSSSSSSSSSSSSSSSSSk\n");
+	packet_t *pktt = sdu->pktt;
+	pktt->rx_deliver_timestamp = g_time_elasped_in_us;
+	ZLOG_DEBUG("pktt->rx_deliver_timestamp = %d\n", g_time_elasped_in_us);
 }
-
 
 void mac_free_pdu(void *data, void *cookie)
 {
@@ -207,7 +173,7 @@ void simu_begin_event(void *timer, void* arg1, void* arg2)
 	rlc_um_init(&(pspt->rlc_rx.um_rx), pspt->rlc_paras.ump.sn_FieldLength, \
 				pspt->rlc_paras.ump.UM_Window_Size, \
 				pspt->rlc_paras.ump.t_Reordering, \
-				mac_free_pdu /* ? */, NULL);
+				mac_free_pdu, NULL);
 
 	/* 2. */
 	rlc_um_set_deliv_func(&pspt->rlc_rx.um_rx, sink);
@@ -245,24 +211,6 @@ void simu_end_event(void *timer, void* arg1, void* arg2)
 	g_is_finished = FINISHED;
 }
 
-/*
-  @arg1 in pointer to the simu_paras_t struct
-  @arg2 in pointer to the packet_t struct
- */
-void pkt_rx_end_event(void *timer, void* arg1, void* arg2)
-{
-	/*
-	  if (BER is on && BER(packet) == discard) {
-	     discard this packet
-	  } else
-	     hand this packet to the RLC RX entity	  
-	 */
-	simu_paras_t *pspt = (simu_paras_t*) arg1;
-	packet_t *pktt = (packet_t*) arg2;
-	assert(pktt);
-
-	FASTFREE(pspt->g_mem_ptimer_t, timer);	
-}
 
 u8* rlc_create_sdu(u16 size)
 {
@@ -371,9 +319,10 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 	  3. generate the packet tx end event for this packet
 	  4. put this packet tx end event to the timer queue
 	 */
-	u8 *mac_pdu, *buffer;
+	u8 *mac_pdu, *buffer, *new_mac_pdu;
 	u32 mac_pdu_size;
-	
+
+
 	simu_paras_t *pspt = (simu_paras_t*) arg1;
 	assert((event_type_t)arg2 == PKT_TX_BEGIN);
 
@@ -393,6 +342,11 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 	ZLOG_DEBUG("Rx PDU length=%u.\n", mac_pdu_size);
 	macrlc_dump_buffer(mac_pdu, mac_pdu_size);
 
+	new_mac_pdu = malloc(mac_pdu_size);
+	assert(new_mac_pdu);
+	memcpy(new_mac_pdu, mac_pdu, mac_pdu_size);
+	free(buffer);
+
 	/* 3. & 4. */
 	ptimer_t *pkt_tx_end = (ptimer_t*)FASTALLOC(pspt->g_mem_ptimer_t);
 	assert(pkt_tx_end);
@@ -407,9 +361,9 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 
 	dllist_init(&(pktt->node));
 	pktt->sequence_no = pspt->rlc_tx.um_tx.umtx.VT_US;
-	pktt->mac_pdu = mac_pdu;
+	pktt->mac_pdu = new_mac_pdu;
 	pktt->mac_pdu_size = mac_pdu_size;
-	pktt->buffer = buffer;
+	pktt->ptt = ONGOING;
 	pktt->packet_size = pspt->t.packet_size;
 	pktt->tx_begin_timestamp = g_time_elasped_in_us;
 	pktt->tx_end_timestamp = 0;	/* not valid, in us */
@@ -462,10 +416,12 @@ void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
 	pkt_tx_begin->duration = tx_interval;
 	pkt_tx_begin->onexpired_func = pkt_tx_begin_event;
 	pkt_tx_begin->param[0] = (void*) pspt;
-	pkt_tx_begin->param[1] = PKT_TX_BEGIN;
+	pkt_tx_begin->param[1] = (void*) PKT_TX_BEGIN;
 	
 	rlc_timer_start(pkt_tx_begin);
 
+	/* 5. tx throughput update, done at the @receiver side */
+	
 	/* 6. */
 	ptimer_t *pkt_rx_end = (ptimer_t*)FASTALLOC(pspt->g_mem_ptimer_t);
 	assert(pkt_rx_end);
@@ -474,11 +430,12 @@ void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
 	pkt_rx_end->param[0] = (void*) pspt;
 	pkt_rx_end->param[1] = arg2; /* packet_t struct */
 	
-	rlc_timer_start(pkt_rx_end)
-	
+	rlc_timer_start(pkt_rx_end);
+	/*
 	ZLOG_DEBUG("going to be finished!\n");
 	g_is_finished = FINISHED;
-
+	*/
+	
 	FASTFREE(pspt->g_mem_ptimer_t, timer);
 }
 
@@ -486,6 +443,100 @@ void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
 /* AM mode: RX, t-StatusProhibit */
 /* AM mode: RX, t-Reordering */
 /* UM mode: RX, t-Reordering */
+
+int mac_process_pdu(rlc_entity_um_rx_t *umrx, u8 *mac_pdu, u32 pdu_len)
+{
+	u32 lc_id;
+	u32 i, l = 0;
+	u32 ret = 0;
+	u32 n_sdu = 0;
+	int left_len = pdu_len;
+	u8 *mac_sdu = NULL;
+	mac_pdu_subhead_t *subhead_ptr = (mac_pdu_subhead_t *)mac_pdu;
+	mac_pdu_subhead_t subhead[32];
+
+	/* parse subhead */
+	while(left_len > 0)
+	{
+		if(subhead_ptr->e == 0)
+		{
+			subhead[n_sdu].lc_id = subhead_ptr->lc_id;
+			subhead[n_sdu].l = left_len-1;
+			mac_sdu = (u8 *)subhead_ptr + 1;			//this first SDU pointer
+			n_sdu ++;
+			left_len = 0;
+			break;
+		}
+		else
+		{
+			/* this should not happen! */
+			ZLOG_ERR("this should not happen!\n");
+			assert(0);
+		}
+	}
+	
+	if(mac_sdu == NULL || n_sdu == 0 || left_len != 0)
+	{
+		ZLOG_ERR("mac_sdu=0x%p n_sdu=%u left_len=%d.\n", mac_sdu, n_sdu, left_len);
+		return -1;
+	}
+	
+	for(i=0; i<n_sdu; i++)
+	{
+		lc_id = subhead[i].lc_id;
+		l = subhead[i].l;
+		
+		//dump MAC sub-header
+		ZLOG_DEBUG("Rx MAC PDU sub-header: LCID=%u L=%u.\n", lc_id, l);
+				
+		/* process special LCID */
+		switch(lc_id)
+		{
+			default:		//Identity of the logical channel
+			{
+				assert(l > 0);
+				if(rlc_um_rx_process_pdu(umrx, mac_sdu, l, mac_pdu) != 0)
+					ZLOG_WARN("rlc_um_rx_process_pdu() failure.\n");
+			}
+		}
+		//to next SDU
+		mac_sdu += l;
+	}
+	return ret;	
+}
+
+/*
+  @arg1 in pointer to the simu_paras_t struct
+  @arg2 in pointer to the packet_t struct
+ */
+void pkt_rx_end_event(void *timer, void* arg1, void* arg2)
+{
+	/*
+	  if (BER is on && BER(packet) == discard) {
+	     discard this packet
+	  } else
+	     hand this packet to the RLC RX entity	  
+	 */
+	simu_paras_t *pspt = (simu_paras_t*) arg1;
+	packet_t *pktt = (packet_t*) arg2;
+	assert(pktt);
+
+
+	/* 1. update this packet's statistics */
+	pktt->ptt = RX_OK;
+	
+	/* 2. call mac_process_pdu to handle this packet */
+	/* 3. mac pdu is freed in the mac_process_pdu */
+	pspt->rlc_rx.um_rx.umrx.pktt = pktt;
+	mac_process_pdu(&(pspt->rlc_rx.um_rx.umrx), pktt->mac_pdu, pktt->mac_pdu_size);
+
+	/*
+	ZLOG_DEBUG("going to be finished!\n");
+	g_is_finished = FINISHED;
+	*/
+	
+	FASTFREE(pspt->g_mem_ptimer_t, timer);	
+}
 
 
 int main (int argc, char *argv[])
@@ -522,7 +573,7 @@ int main (int argc, char *argv[])
 	spt.g_mem_ptimer_t = fastalloc_create(sizeof(ptimer_t), PTIMER_MEM_MAX, 0, 100);
 	assert(spt.g_mem_ptimer_t);
 
-#define PACKET_MEM_MAX 4096
+#define PACKET_MEM_MAX (4096*16*16)
 	spt.g_mem_packet_t = fastalloc_create(sizeof(packet_t), PACKET_MEM_MAX, 0, 100);
 	assert(spt.g_mem_packet_t);
 	
@@ -552,7 +603,7 @@ int main (int argc, char *argv[])
 	/* 4. */
 	int step_in_us = 1;
 	// while (!g_is_finished && time_elasped_in_us <= MS2US(S2MS(1000))) {
-	while (g_is_finished == NOT_FINISHED) {		
+	while (g_is_finished == NOT_FINISHED && g_time_elasped_in_us <= MS2US(S2MS(10)) ) {		
 		rlc_timer_push(step_in_us);		/* us */
 		g_time_elasped_in_us += step_in_us;
 	}

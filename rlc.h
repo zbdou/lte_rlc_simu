@@ -28,6 +28,7 @@
 #include "rlc_pdu.h"
 #include "list.h"
 #include "ptimer.h"
+#include "simu_um_mode.h"
 
 #define RLC_MOD(x, y) \
 	((x) & ((y)-1))
@@ -95,6 +96,9 @@ typedef struct rlc_sdu
 	u32 n_segment;						/* current segment number */
 	u32 intact;							/* all segment received */
 	u32 offset;							/* read offset */
+
+	packet_t *pktt;
+	
 }rlc_sdu_t;
 
 /**********************************************************************/
@@ -181,6 +185,8 @@ typedef struct rlc_entity_um_rx
 	
 	u32 n_discard_pdu;					/* counter: discarded PDUs */
 	u32 n_good_pdu;
+
+	packet_t* pktt;
 }rlc_entity_um_rx_t;
 
 /* rlc um entity */
