@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <time.h>
 
+#include "list.h"
 #include "rlc.h"
 #include "log.h"
 #include "fastalloc.h"
@@ -20,6 +21,9 @@ int g_is_finished = NOT_FINISHED;
 
 #define MAC_UL_LCID_CCCH 0x01
 #define MAC_DL_LCID_CCCH 0x02
+
+/* current simulation time, in us */
+int g_time_elasped_in_us = 0;
 
 /* simulation input parameters */
 /* @transmitter */
@@ -47,6 +51,9 @@ typedef struct {
 	u32 sequence_no;			/* sequence number (derived from rlc seq.) */
 	u32 packet_size;			/* in bytes */
 
+	u8* mac_pdu;				/* pointer to the mac pdu */
+	u32 mac_pdu_size;
+	u8* buffer;
 	
 	/* statistics */
 	u32 tx_begin_timestamp;
@@ -126,6 +133,7 @@ typedef struct {
 	} rlc_rx;
 
 	fastalloc_t *g_mem_ptimer_t; /* as the timer event memory pool. */
+	fastalloc_t *g_mem_packet_t; /* as the packet_t memory pool */
 } simu_paras_t;
 
 /* convert s to ms */
@@ -196,7 +204,6 @@ void simu_begin_event(void *timer, void* arg1, void* arg2)
 	   in @free_sdu should be set to NULL, as we re-use
 	   the rlc sdu buffer through the entire simulation.
 	 */
-	
 	rlc_um_init(&(pspt->rlc_rx.um_rx), pspt->rlc_paras.ump.sn_FieldLength, \
 				pspt->rlc_paras.ump.UM_Window_Size, \
 				pspt->rlc_paras.ump.t_Reordering, \
@@ -217,7 +224,7 @@ void simu_begin_event(void *timer, void* arg1, void* arg2)
 	/* 4. */
 	rlc_timer_start(pkt_tx_begin);
 
-	g_is_finished = FINISHED;
+	// g_is_finished = FINISHED;
 }
 
 /* FIXME:
@@ -250,6 +257,11 @@ void pkt_rx_end_event(void *timer, void* arg1, void* arg2)
 	  } else
 	     hand this packet to the RLC RX entity	  
 	 */
+	simu_paras_t *pspt = (simu_paras_t*) arg1;
+	packet_t *pktt = (packet_t*) arg2;
+	assert(pktt);
+
+	FASTFREE(pspt->g_mem_ptimer_t, timer);	
 }
 
 u8* rlc_create_sdu(u16 size)
@@ -367,26 +379,20 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 
 	/* 1. */
 	/* 2. */
+	/* the sdu_ptr is freed within the rlc_encode_sdu() */
 	u8* sdu_ptr = rlc_create_sdu(pspt->t.packet_size);
 	rlc_um_tx_sdu_enqueue(&(pspt->rlc_tx.um_tx.umtx), sdu_ptr, pspt->t.packet_size, NULL);
 
-	/* FIXME: TBD */
-
-	/* call mac_build_pdu variant */
+	/* call the mac_build_pdu variant */
 	if( mac_build_pdu(&(pspt->rlc_tx.um_tx), &mac_pdu, &mac_pdu_size, &buffer) == 0 ) {
 		ZLOG_ERR("failed to build MAC PDU\n");
 		return;
 	}
+
+	/* debug, dump the mac pdu */
 	ZLOG_DEBUG("Rx PDU length=%u.\n", mac_pdu_size);
 	macrlc_dump_buffer(mac_pdu, mac_pdu_size);
 
-	/* duplicate this mac pdu by *malloc* */
-	
-	
-
-
-
-	
 	/* 3. & 4. */
 	ptimer_t *pkt_tx_end = (ptimer_t*)FASTALLOC(pspt->g_mem_ptimer_t);
 	assert(pkt_tx_end);
@@ -394,15 +400,31 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 	pkt_tx_end->duration = pspt->tx_delay;	/* tx delay */
 	pkt_tx_end->onexpired_func = pkt_tx_end_event;
 	pkt_tx_end->param[0] = (void*) pspt;
-	pkt_tx_end->param[1] = (void*) PKT_TX_END; /* FIXME: should be the pointer to the packet_t */
-	
+
+	/* associate this mac pdu (rlc pdu) with the simulation packet info */
+	packet_t *pktt = (packet_t*)FASTALLOC(pspt->g_mem_packet_t);
+	assert(pktt);
+
+	dllist_init(&(pktt->node));
+	pktt->sequence_no = pspt->rlc_tx.um_tx.umtx.VT_US;
+	pktt->mac_pdu = mac_pdu;
+	pktt->mac_pdu_size = mac_pdu_size;
+	pktt->buffer = buffer;
+	pktt->packet_size = pspt->t.packet_size;
+	pktt->tx_begin_timestamp = g_time_elasped_in_us;
+	pktt->tx_end_timestamp = 0;	/* not valid, in us */
+	pktt->rx_deliver_timestamp = 0; /* not valid, in us */
+	pktt->jitter = 0;			/* not valid, in us */	
+		
+	pkt_tx_end->param[1] = (void*) pktt; 
+
 	rlc_timer_start(pkt_tx_end);
 
-		
-
+	/*
 	ZLOG_DEBUG("going to be finished!\n");
 	g_is_finished = FINISHED;
-
+	*/
+	
 	FASTFREE(pspt->g_mem_ptimer_t, timer);
 }
 
@@ -425,18 +447,37 @@ void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
 	     (time = cur simu time + prop delay)
 	 */
 	simu_paras_t *pspt = (simu_paras_t*) arg1;
+	packet_t *pktt = (packet_t*) arg2;
+	assert(pktt);
 
-	
-	u32 tx_interval = 1;		/* us */
+	/* 1. update packet_t */
+	pktt->tx_end_timestamp = g_time_elasped_in_us;
 
+	/* 2. FIXME */
+	u32 tx_interval = 1;		/* us */	
+
+	/* 3. & 4. */
 	ptimer_t *pkt_tx_begin = (ptimer_t*)FASTALLOC(pspt->g_mem_ptimer_t);
 	assert(pkt_tx_begin);
 	pkt_tx_begin->duration = tx_interval;
 	pkt_tx_begin->onexpired_func = pkt_tx_begin_event;
 	pkt_tx_begin->param[0] = (void*) pspt;
-	pkt_tx_begin->param[1] = (void*) PKT_TX_BEGIN; /* FIXME */
-
+	pkt_tx_begin->param[1] = PKT_TX_BEGIN;
+	
 	rlc_timer_start(pkt_tx_begin);
+
+	/* 6. */
+	ptimer_t *pkt_rx_end = (ptimer_t*)FASTALLOC(pspt->g_mem_ptimer_t);
+	assert(pkt_rx_end);
+	pkt_rx_end->duration = pspt->rl.prop_delay;
+	pkt_rx_end->onexpired_func = pkt_rx_end_event;
+	pkt_rx_end->param[0] = (void*) pspt;
+	pkt_rx_end->param[1] = arg2; /* packet_t struct */
+	
+	rlc_timer_start(pkt_rx_end)
+	
+	ZLOG_DEBUG("going to be finished!\n");
+	g_is_finished = FINISHED;
 
 	FASTFREE(pspt->g_mem_ptimer_t, timer);
 }
@@ -446,8 +487,6 @@ void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
 /* AM mode: RX, t-Reordering */
 /* UM mode: RX, t-Reordering */
 
-/* current simulation time, in us */
-int g_time_elasped_in_us = 0;
 
 int main (int argc, char *argv[])
 {
@@ -482,6 +521,10 @@ int main (int argc, char *argv[])
 #define PTIMER_MEM_MAX 4096
 	spt.g_mem_ptimer_t = fastalloc_create(sizeof(ptimer_t), PTIMER_MEM_MAX, 0, 100);
 	assert(spt.g_mem_ptimer_t);
+
+#define PACKET_MEM_MAX 4096
+	spt.g_mem_packet_t = fastalloc_create(sizeof(packet_t), PACKET_MEM_MAX, 0, 100);
+	assert(spt.g_mem_packet_t);
 	
 	/* @transmitter */
 	/* @receiver */
@@ -509,7 +552,7 @@ int main (int argc, char *argv[])
 	/* 4. */
 	int step_in_us = 1;
 	// while (!g_is_finished && time_elasped_in_us <= MS2US(S2MS(1000))) {
-	while (!g_is_finished) {		
+	while (g_is_finished == NOT_FINISHED) {		
 		rlc_timer_push(step_in_us);		/* us */
 		g_time_elasped_in_us += step_in_us;
 	}
@@ -517,10 +560,3 @@ int main (int argc, char *argv[])
 
 	return 0;
 }
-
-
-
-
-
-
-
