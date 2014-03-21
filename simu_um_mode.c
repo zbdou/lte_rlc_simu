@@ -116,16 +116,17 @@ void pkt_tx_end_event(void *timer, void* arg1, void* arg2);
  */
 void sink(struct rlc_entity_um_rx *umrx, rlc_sdu_t* sdu)
 {
-	/* FIXME:
-	   input is the rlc_sdu_t* sdu, but we want packet_t */
-
 	/*
 	  1. update this packet’s end to end delay (received time = the current simulation time)
 	  2. put this packet to the received packet list @g_sink_packet_list
 	*/
-	ZLOG_DEBUG("SSSSSSSSSSSSSSSSSSSSk\n");
+	/* 1. */
 	packet_t *pktt = sdu->pktt;
 	pktt->rx_deliver_timestamp = g_time_elasped_in_us;
+
+	/* 2. */
+	dllist_append(&g_sink_packet_list, &(pktt->node));
+
 	ZLOG_DEBUG("pktt->rx_deliver_timestamp = %d\n", g_time_elasped_in_us);
 }
 
@@ -189,8 +190,7 @@ void simu_begin_event(void *timer, void* arg1, void* arg2)
 
 	/* 4. */
 	rlc_timer_start(pkt_tx_begin);
-
-	// g_is_finished = FINISHED;
+	dllist_init(&g_sink_packet_list);
 }
 
 /* FIXME:
@@ -340,7 +340,7 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 
 	/* debug, dump the mac pdu */
 	ZLOG_DEBUG("Rx PDU length=%u.\n", mac_pdu_size);
-	macrlc_dump_buffer(mac_pdu, mac_pdu_size);
+	// macrlc_dump_buffer(mac_pdu, mac_pdu_size);
 
 	new_mac_pdu = malloc(mac_pdu_size);
 	assert(new_mac_pdu);
@@ -351,6 +351,11 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2)
 	ptimer_t *pkt_tx_end = (ptimer_t*)FASTALLOC(pspt->g_mem_ptimer_t);
 	assert(pkt_tx_end);
 
+	/* cal tx delay */
+	pspt->tx_delay = (1e3 * OCTET * (mac_pdu_size + PHY_HEADER_SIZE)) / pspt->rl.link_bandwidth;
+
+	ZLOG_DEBUG("tx delay = %d\n", pspt->tx_delay);
+	
 	pkt_tx_end->duration = pspt->tx_delay;	/* tx delay */
 	pkt_tx_end->onexpired_func = pkt_tx_end_event;
 	pkt_tx_end->param[0] = (void*) pspt;
@@ -538,6 +543,59 @@ void pkt_rx_end_event(void *timer, void* arg1, void* arg2)
 	FASTFREE(pspt->g_mem_ptimer_t, timer);	
 }
 
+typedef struct {
+	dllist_node_t node;
+	u32 throughput;				/* in bps */
+	u32 time;					/* at which time, in second, e.g. time = 3, means [3, 4) */
+} tx_throughput_t;
+
+void output_tx_throughput(packet_t* pktt)
+{
+	/* unit: second, based on the pktt->tx_begin_timestamp, the pktt->tx_end_timestamp */
+	static dllist_node_t tx_tpt_list = {
+		.prev = &tx_tpt_list,
+		.next = &tx_tpt_list
+	};
+	
+	
+	if (pktt == NULL) {
+		/* output the result */
+		while (!DLLIST_EMPTY(&tx_tpt_list)) {
+			tx_throughput_t *ttt = (tx_throughput_t*) DLLIST_HEAD(&tx_tpt_list);
+			ZLOG_INFO("tx tpt: at [%d, %d)s, throughput %f kbps\n", ttt->time, ttt->time + 1, ((double) ttt->throughput)/1024 /* kbps */);
+			dllist_remove(&tx_tpt_list, &(ttt->node));
+			free(ttt);
+		}
+		return;
+	}
+
+	/* pktt != NULL, calcuate the tx throughput */
+	u32 remainder_begin = pktt->tx_begin_timestamp % (u32) MS2US(S2MS(1));
+	u32 remainder_end = pktt->tx_end_timestamp % (u32) (MS2US(S2MS(1)));
+
+	u32 integer_begin = (pktt->tx_begin_timestamp - remainder_begin) / MS2US(S2MS(1));
+	u32 integer_end = (pktt->tx_end_timestamp - remainder_end) / MS2US(S2MS(1));
+	
+	if ( integer_begin == integer_end ) {
+		/* in the same time range */
+		/* if have, get it */
+		tx_throughput_t * ttt = (tx_throughput_t*) DLLIST_TAIL(&tx_tpt_list);
+		if (DLLIST_IS_HEAD(&tx_tpt_list, ttt) || ttt->time != integer_begin) {
+			/* new one */
+			tx_throughput_t * new_ttt = (tx_throughput_t*) malloc(sizeof(tx_throughput_t));
+			assert(new_ttt);
+			new_ttt->time = integer_begin;
+			new_ttt->throughput = pktt->mac_pdu_size;
+			dllist_append(&tx_tpt_list, &(new_ttt->node));
+		} else {
+			/* already existed, update it */
+			ttt->throughput += (pktt->mac_pdu_size * OCTET);
+		}
+	} else {
+		/* not in the same time range, split */
+		/* FIXME: */
+	}
+}
 
 int main (int argc, char *argv[])
 {
@@ -554,16 +612,19 @@ int main (int argc, char *argv[])
 	spt.t.packet_size = 100;	/* 100 bytes */
 	spt.rl.link_distance = 0;
 	spt.rl.prop_delay = MS2US(270);	/* 270 ms */
-	spt.rl.link_bandwidth = 1024;
+	spt.rl.link_bandwidth = 100;	/* 100 kbps */
 	spt.rl.per = 10;
 
+	/* this should be set when the mac pdu is build (at the tx_begin_event) */
+	/*
 	spt.tx_delay = ( (1e3 * OCTET *
 						   (spt.t.packet_size +
 							MAC_HEADER_SIZE +
 							PHY_HEADER_SIZE))
 						  / spt.rl.link_bandwidth );
+	*/					 
 
-
+						  
 	/* rlc params */
 	spt.rlc_paras.ump.t_Reordering = MS2US(5); /* 5 ms */
 	spt.rlc_paras.ump.UM_Window_Size = 512;	   /* window size */
@@ -583,9 +644,10 @@ int main (int argc, char *argv[])
 
 	/* init log */
 	zlog_default = openzlog(ZLOG_STDOUT);
-	ZLOG_DEBUG("pkt size = %d, prop delay = %d, link bandwidth = %d," \
-			   "tx delay = %d\n", spt.t.packet_size, spt.rl.prop_delay,
-			   spt.rl.link_bandwidth, spt.tx_delay);
+	zlog_set_pri(zlog_default, LOG_INFO);
+
+	ZLOG_DEBUG("pkt size = %d, prop delay = %d, link bandwidth = %d\n",
+			   spt.t.packet_size, spt.rl.prop_delay, spt.rl.link_bandwidth);
 
 	/* 2. */
 	/* FIXME: simu time unit: 1us! */
@@ -603,11 +665,29 @@ int main (int argc, char *argv[])
 	/* 4. */
 	int step_in_us = 1;
 	// while (!g_is_finished && time_elasped_in_us <= MS2US(S2MS(1000))) {
-	while (g_is_finished == NOT_FINISHED && g_time_elasped_in_us <= MS2US(S2MS(10)) ) {		
+	while (g_is_finished == NOT_FINISHED && g_time_elasped_in_us <= MS2US(S2MS(150)) ) {		
 		rlc_timer_push(step_in_us);		/* us */
 		g_time_elasped_in_us += step_in_us;
 	}
+
+	/* output the simu result */
 	ZLOG_DEBUG("time_elasped_in_us = %d\n", g_time_elasped_in_us);
+
+	int cnt = 0;
+	while (!DLLIST_EMPTY(&g_sink_packet_list)) {
+		packet_t *pktt = (packet_t*) DLLIST_HEAD(&g_sink_packet_list);
+
+		/* 1. tx throughput */
+		output_tx_throughput(pktt);
+
+		dllist_remove(&g_sink_packet_list, &(pktt->node));
+		cnt++;
+		FASTFREE(spt.g_mem_packet_t, pktt);		
+	}
+
+	output_tx_throughput(NULL);
+	
+	ZLOG_INFO("cnt = %d\n", cnt);
 
 	return 0;
 }

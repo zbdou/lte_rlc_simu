@@ -1,4 +1,4 @@
-cscope 15 $HOME/lte_rlc_simu -q 0000002223 0000264765
+cscope 15 $HOME/lte_rlc_simu -q 0000002224 0000265197
 	@bitcpy.c
 
 5 
@@ -22720,9 +22720,9 @@ sdu_tŸÆ_size
 37 
 æc_um_rx_as£mbÀ_sdu
 (
-dŒi°_node_t
+æc_ítôy_um_rx_t
  *
-sdu_as£mbly_q
+umrx
 , 
 æc_um_pdu_t
  *
@@ -22941,10 +22941,8 @@ logiˇl_ch™
 
 131 
 	`æc_um_rx_as£mbÀ_sdu
-(&
+(
 umrx
-->
-sdu_as£mbly_q
 , umrx->
 pdu
 [
@@ -24331,10 +24329,8 @@ tmp_¢
 
 484 
 	`æc_um_rx_as£mbÀ_sdu
-(&
+(
 umrx
-->
-sdu_as£mbly_q
 , umrx->
 pdu
 [
@@ -24405,10 +24401,8 @@ logiˇl_ch™
 
 507 
 	`æc_um_rx_as£mbÀ_sdu
-(&
+(
 umrx
-->
-sdu_as£mbly_q
 , umrx->
 pdu
 [
@@ -24712,9 +24706,9 @@ cookõ
 623 
 	$æc_um_rx_as£mbÀ_sdu
 (
-dŒi°_node_t
+æc_ítôy_um_rx_t
  *
-sdu_as£mbly_q
+umrx
 , 
 æc_um_pdu_t
  *
@@ -24722,12 +24716,20 @@ pdu
 )
 
 625 
+dŒi°_node_t
+ *
+sdu_as£mbly_q
+ = &(
+umrx
+->sdu_assembly_q);
+
+626 
 æc_sdu_t
  *
 sdu
 ;
 
-626 
+627 
 u32
  
 li_idx
@@ -24735,7 +24737,7 @@ li_idx
 li_Àn
  = 0;
 
-627 
+628 
 u32
  
 is_fú°
@@ -24743,7 +24745,7 @@ is_fú°
 is_œ°
 ;
 
-633 
+634 
 is_fú°
  = !(
 pdu
@@ -24751,7 +24753,7 @@ pdu
 fi
  & 0x02);
 
-634 
+635 
 is_œ°
  = !(
 pdu
@@ -24759,11 +24761,11 @@ pdu
 fi
  & 0x01);
 
-637 if(
+638 if(
 is_fú°
 )
 
-640 
+641 
 sdu
  = (
 æc_sdu_t
@@ -24773,7 +24775,7 @@ sdu
 sdu_as£mbly_q
 );
 
-641 if((!
+642 if((!
 	`DLLIST_IS_HEAD
 (
 sdu_as£mbly_q
@@ -24783,7 +24785,7 @@ sdu
 öè˘
 ))
 
-643 
+644 
 	`ZLOG_WARN
 ("SDUÇŸ i¡a˘, buàFI i¿PDU i†RLC_FI_FIRST_XLAST, sn=%u, disˇrd SDU.\n", 
 pdu
@@ -24791,7 +24793,7 @@ pdu
 ¢
 );
 
-646 
+647 
 	`dŒi°_ªmove
 (
 sdu_as£mbly_q
@@ -24801,13 +24803,13 @@ dŒi°_node_t
 sdu
 );
 
-647 
+648 
 	`æc_sdu_‰ì
 (
 sdu
 );
 
-653 
+654 
 sdu
  = (
 æc_sdu_t
@@ -24817,7 +24819,7 @@ sdu
 sdu_as£mbly_q
 );
 
-654 if(
+655 if(
 	`DLLIST_IS_HEAD
 (
 sdu_as£mbly_q
@@ -24827,7 +24829,7 @@ sdu
 öè˘
 ))
 
-656 
+657 
 	`ZLOG_WARN
 ("SDU i†öè˘, buàFI i¿PDU i†RLC_FI_NFIRST_XLAST, sn=%u.\n", 
 pdu
@@ -24835,11 +24837,11 @@ pdu
 ¢
 );
 
-657 
+658 
 li_idx
  ++;
 
-658 
+659 
 li_Àn
  +
 pdu
@@ -24847,7 +24849,7 @@ pdu
 li_s
 [0];
 
-661 if(
+662 if(
 sdu
 ->
 n_£gmít
@@ -24855,11 +24857,11 @@ n_£gmít
 RLC_SDU_SEGMENT_MAX
 )
 
-663 
+664 
 	`ZLOG_DEBUG
 ("assembleÇot first segment: offset=%uÜength=%u.\n",
 
-664 
+665 
 sdu
 ->
 size
@@ -24869,7 +24871,7 @@ pdu
 li_s
 [0]);
 
-666 
+667 
 sdu
 ->
 size
@@ -24879,7 +24881,7 @@ pdu
 li_s
 [0];
 
-667 
+668 
 sdu
 ->
 £gmít
@@ -24893,7 +24895,7 @@ pdu
 d©a_±r
 ;
 
-668 
+669 
 sdu
 ->
 £gmít
@@ -24907,7 +24909,7 @@ pdu
 li_s
 [0];
 
-669 
+670 
 sdu
 ->
 £gmít
@@ -24919,7 +24921,7 @@ cookõ
 pdu
 ;
 
-670 
+671 
 sdu
 ->
 £gmít
@@ -24931,7 +24933,7 @@ n_£gmít
 æc_um_rx£g_‰ì
 ;
 
-671 
+672 
 li_Àn
  +
 pdu
@@ -24939,29 +24941,29 @@ pdu
 li_s
 [0];
 
-672 
+673 
 sdu
 ->
 n_£gmít
  ++;
 
-673 
+674 
 sdu
 ->
 öè˘
  = 1;
 
-674 
+675 
 	`RLC_REF
 (
 pdu
 );
 
-677 
+678 
 	`ZLOG_WARN
 ("SDU hasÅoo much segments.\n");
 
-679 
+680 
 	`dŒi°_ªmove
 (
 sdu_as£mbly_q
@@ -24971,17 +24973,17 @@ dŒi°_node_t
 sdu
 );
 
-680 
+681 
 	`æc_sdu_‰ì
 (
 sdu
 );
 
-684 
+685 
 li_idx
  ++;
 
-690 ; 
+691 ; 
 li_idx
  < 
 pdu
@@ -24989,13 +24991,13 @@ pdu
 n_li
 ;Üi_idx ++)
 
-693 
+694 
 sdu
  = 
 	`æc_sdu_√w
 ();
 
-694 
+695 
 	`dŒi°_≠≥nd
 (
 sdu_as£mbly_q
@@ -25005,7 +25007,7 @@ dŒi°_node_t
 sdu
 );
 
-696 
+697 
 	`ZLOG_DEBUG
 ("as£mbÀ fú° segmít:Üígth=%u.\n", 
 pdu
@@ -25015,7 +25017,15 @@ li_s
 li_idx
 ]);
 
-698 
+699 
+sdu
+->
+pkâ
+ = 
+umrx
+->pktt;
+
+700 
 sdu
 ->
 size
@@ -25027,7 +25037,7 @@ li_s
 li_idx
 ];
 
-699 
+701 
 sdu
 ->
 £gmít
@@ -25043,7 +25053,7 @@ d©a_±r
 li_Àn
 ;
 
-700 
+702 
 sdu
 ->
 £gmít
@@ -25059,7 +25069,7 @@ li_s
 li_idx
 ];
 
-701 
+703 
 sdu
 ->
 £gmít
@@ -25071,7 +25081,7 @@ cookõ
 pdu
 ;
 
-702 
+704 
 sdu
 ->
 £gmít
@@ -25083,7 +25093,7 @@ n_£gmít
 æc_um_rx£g_‰ì
 ;
 
-703 
+705 
 li_Àn
  +
 pdu
@@ -25093,39 +25103,39 @@ li_s
 li_idx
 ];
 
-704 
+706 
 sdu
 ->
 n_£gmít
  ++;
 
-705 
+707 
 sdu
 ->
 öè˘
  = 1;
 
-706 
+708 
 	`RLC_REF
 (
 pdu
 );
 
-710 if(!
+712 if(!
 is_œ°
 )
 
-712 
+714 
 sdu
 ->
 öè˘
  = 0;
 
-716 
+718 
 	}
 }
 
-735 
+737 
 æc_um_öô
 (
 æc_ítôy_um_t
@@ -25141,13 +25151,13 @@ UM_Wödow_Size
 t_Re‹dîög
 ,
 
-736 (*
+738 (*
 ‰ì_pdu
 )(*, *), (*
 ‰ì_sdu
 )(*, *))
 
-738 
+740 
 	`mem£t
 (
 æc_um
@@ -25155,45 +25165,45 @@ t_Re‹dîög
 æc_ítôy_um_t
 ));
 
-739 if(
+741 if(
 ¢_bôs
  != 5 && sn_bits != 10)
 
-740 
+742 
 ¢_bôs
  = 10;
-
-741 
-æc_um
-->
-umrx
-.
-ty≥
- = 
-RLC_ENTITY_TYPE_UM
-;
-
-742 
-æc_um
-->
-umtx
-.
-ty≥
- = 
-RLC_ENTITY_TYPE_UM
-;
 
 743 
 æc_um
 ->
 umrx
 .
+ty≥
+ = 
+RLC_ENTITY_TYPE_UM
+;
+
+744 
+æc_um
+->
+umtx
+.
+ty≥
+ = 
+RLC_ENTITY_TYPE_UM
+;
+
+745 
+æc_um
+->
+umrx
+.
 ¢_max
  = (1<<
 ¢_bôs
 ) - 1;
 
-744 
+746 
 æc_um
 ->
 umtx
@@ -25203,7 +25213,7 @@ umtx
 ¢_bôs
 ) - 1;
 
-745 
+747 
 æc_um
 ->
 umrx
@@ -25211,7 +25221,7 @@ umrx
 UM_Wödow_Size
  = UM_Window_Size;
 
-746 
+748 
 æc_um
 ->
 umrx
@@ -25221,7 +25231,7 @@ t_Re‹dîög
 duøti⁄
  =Å_Reordering;
 
-747 
+749 
 æc_um
 ->
 umrx
@@ -25233,7 +25243,7 @@ t_Re‹dîög
 t_Re‹dîög_um_func
 ;
 
-748 
+750 
 æc_um
 ->
 umrx
@@ -25243,7 +25253,7 @@ t_Re‹dîög
 ∑øm
 [0] = (*)&rlc_um->umrx;
 
-749 
+751 
 æc_um
 ->
 umrx
@@ -25253,26 +25263,10 @@ t_Re‹dîög
 ∑øm
 [1] = 0;
 
-751 
-æc_um
-->
-umrx
-.
-‰ì_pdu
- = free_pdu;
-
-752 
-æc_um
-->
-umrx
-.
-‰ì_sdu
- = free_sdu;
-
 753 
 æc_um
 ->
-umtx
+umrx
 .
 ‰ì_pdu
  = free_pdu;
@@ -25280,12 +25274,28 @@ umtx
 754 
 æc_um
 ->
+umrx
+.
+‰ì_sdu
+ = free_sdu;
+
+755 
+æc_um
+->
+umtx
+.
+‰ì_pdu
+ = free_pdu;
+
+756 
+æc_um
+->
 umtx
 .
 ‰ì_sdu
  = free_sdu;
 
-756 
+758 
 	`dŒi°_öô
 (&(
 æc_um
@@ -25295,7 +25305,7 @@ umrx
 sdu_as£mbly_q
 ));
 
-757 
+759 
 	`dŒi°_öô
 (&(
 æc_um
@@ -25305,11 +25315,11 @@ umtx
 sdu_tx_q
 ));
 
-758 
+760 
 	}
 }
 
-773 
+775 
 æc_um_£t_dñiv_func
 (
 æc_ítôy_um_t
@@ -25323,11 +25333,11 @@ dñiv_sdu
 æc_sdu_t
  *))
 
-775 if(
+777 if(
 æc_um
 )
 
-776 
+778 
 æc_um
 ->
 umrx
@@ -25335,11 +25345,11 @@ umrx
 dñiv_sdu
  = deliv_sdu;
 
-777 
+779 
 	}
 }
 
-791 
+793 
 	$æc_um_ªe°ablish
 (
 æc_ítôy_um_t
@@ -25347,49 +25357,49 @@ dñiv_sdu
 æcum
 )
 
-793 
+795 
 u16
  
 ¢
 ;
 
-794 
+796 
 æc_ítôy_um_rx_t
  *
 umrx
 ;
 
-795 
+797 
 æc_ítôy_um_tx_t
  *
 umtx
 ;
 
-796 
+798 
 æc_sdu_t
  *
 sdu
 ;
 
-798 if(
+800 if(
 æcum
  =
 NULL
 )
 
-801 
+803 
 umrx
  = &
 æcum
 ->umrx;
 
-802 
+804 
 umtx
  = &
 æcum
 ->umtx;
 
-811 
+813 
 ¢
  = 
 umrx
@@ -25397,7 +25407,7 @@ umrx
 VR_UR
 ;
 
-812 
+814 
 	`RLC_SN_LESS
 (
 ¢
@@ -25409,7 +25419,7 @@ VR_UH
 RLC_SN_MAX_10BITS
 +1)))
 
-814 if(
+816 if(
 umrx
 ->
 pdu
@@ -25417,7 +25427,7 @@ pdu
 ¢
 ])
 
-816 
+818 
 	`ZLOG_DEBUG
 ("Re-E°ablishmít: TryÅÿas£mbly RLC UM SDU from PDU:Ücid=%d sn=%u.\n", 
 umrx
@@ -25427,19 +25437,17 @@ logiˇl_ch™
 ¢
 );
 
-817 
+819 
 	`æc_um_rx_as£mbÀ_sdu
-(&
+(
 umrx
-->
-sdu_as£mbly_q
 , umrx->
 pdu
 [
 ¢
 ]);
 
-818 
+820 
 umrx
 ->
 pdu
@@ -25449,7 +25457,7 @@ pdu
 NULL
 ;
 
-820 
+822 
 ¢
  = 
 	`RLC_MOD
@@ -25457,7 +25465,7 @@ NULL
 RLC_SN_MAX_10BITS
 +1));
 
-823 
+825 
 	`æc_um_rx_dñivîy_sdu
 (
 umrx
@@ -25465,27 +25473,27 @@ umrx
 sdu_as£mbly_q
 );
 
-826 if(!
+828 if(!
 	`DLLIST_EMPTY
 (&
 umrx
 ->
 sdu_as£mbly_q
 ))
-
-828 
-sdu
- = (
-æc_sdu_t
- *)(
-umrx
-->
-sdu_as£mbly_q
-.
-√xt
-);
 
 830 
+sdu
+ = (
+æc_sdu_t
+ *)(
+umrx
+->
+sdu_as£mbly_q
+.
+√xt
+);
+
+832 
 	`dŒi°_ªmove
 (&
 umrx
@@ -25497,13 +25505,13 @@ dŒi°_node_t
 sdu
 );
 
-833 
+835 
 	`æc_sdu_‰ì
 (
 sdu
 );
 
-840 !
+842 !
 	`DLLIST_EMPTY
 (&
 umtx
@@ -25511,7 +25519,7 @@ umtx
 sdu_tx_q
 ))
 
-842 
+844 
 sdu
  = (
 æc_sdu_t
@@ -25523,7 +25531,7 @@ sdu_tx_q
 √xt
 );
 
-844 
+846 
 	`dŒi°_ªmove
 (&
 umtx
@@ -25535,13 +25543,13 @@ dŒi°_node_t
 sdu
 );
 
-845 
+847 
 	`æc_sdu_‰ì
 (
 sdu
 );
 
-852 if(
+854 if(
 	`æc_timî_is_ru¬ög
 (&
 umrx
@@ -25549,7 +25557,7 @@ umrx
 t_Re‹dîög
 ))
 
-853 
+855 
 	`æc_timî_°›
 (&
 umrx
@@ -25557,55 +25565,55 @@ umrx
 t_Re‹dîög
 );
 
-855 
+857 
 umrx
 ->
 n_disˇrd_pdu
  = 0;
 
-856 
+858 
 umrx
 ->
 n_good_pdu
  = 0;
 
-857 
+859 
 umrx
 ->
 VR_UR
  = 0;
 
-858 
+860 
 umrx
 ->
 VR_UH
  = 0;
 
-859 
+861 
 umrx
 ->
 VR_UX
  = 0;
 
-861 
+863 
 umtx
 ->
 n_sdu
  = 0;
 
-862 
+864 
 umtx
 ->
 sdu_tŸÆ_size
  = 0;
 
-863 
+865 
 umtx
 ->
 VT_US
  = 0;
 
-866 
+868 
 	}
 }
 
@@ -25947,11 +25955,7 @@ umrx
 sdu
 )
 
-126 
-	`ZLOG_DEBUG
-("SSSSSSSSSSSSSSSSSSSSk\n");
-
-127 
+124 
 ∑ckë_t
  *
 pkâ
@@ -25959,7 +25963,7 @@ pkâ
 sdu
 ->pktt;
 
-128 
+125 
 pkâ
 ->
 rx_dñivî_time°amp
@@ -25967,15 +25971,27 @@ rx_dñivî_time°amp
 g_time_ña•ed_ö_us
 ;
 
-132 
-	`ZLOG_DEBUG
-("SSSSSSSSSSSSSSSSSSSSk\n");
+128 
+	`dŒi°_≠≥nd
+(&
+g_sök_∑ckë_li°
+, &(
+pkâ
+->
+node
+));
 
-133 
+130 
+	`ZLOG_DEBUG
+("pkâ->rx_dñivî_time°am∞%d\n", 
+g_time_ña•ed_ö_us
+);
+
+131 
 	}
 }
 
-135 
+133 
 	$mac_‰ì_pdu
 (*
 d©a
@@ -25983,17 +25999,17 @@ d©a
 cookõ
 )
 
-137 
+135 
 	`‰ì
 (
 cookõ
 );
 
-138 
+136 
 	}
 }
 
-141 
+139 
 	$mac_‰ì_sdu
 (*
 d©a
@@ -26001,17 +26017,17 @@ d©a
 cookõ
 )
 
-143 
+141 
 	`‰ì
 (
 d©a
 );
 
-144 
+142 
 	}
 }
 
-152 
+150 
 	$simu_begö_evít
 (*
 timî
@@ -26021,7 +26037,7 @@ timî
 ¨g2
 )
 
-162 
+160 
 simu_∑øs_t
  *
 p•t
@@ -26029,7 +26045,7 @@ p•t
 ¨g1
 ;
 
-163 
+161 
 	`as£π
 ((
 evít_ty≥_t
@@ -26039,7 +26055,7 @@ evít_ty≥_t
 SIMU_BEGIN
 );
 
-167 
+165 
 	`æc_um_öô
 (&(
 p•t
@@ -26055,7 +26071,7 @@ ump
 ¢_FõldLígth
 , \
 
-168 
+166 
 p•t
 ->
 æc_∑øs
@@ -26065,7 +26081,7 @@ ump
 UM_Wödow_Size
 , \
 
-169 
+167 
 p•t
 ->
 æc_∑øs
@@ -26075,13 +26091,13 @@ ump
 t_Re‹dîög
 , \
 
-170 
+168 
 mac_‰ì_pdu
 , 
 mac_‰ì_sdu
 );
 
-176 
+174 
 	`æc_um_öô
 (&(
 p•t
@@ -26097,7 +26113,7 @@ ump
 ¢_FõldLígth
 , \
 
-177 
+175 
 p•t
 ->
 æc_∑øs
@@ -26107,7 +26123,7 @@ ump
 UM_Wödow_Size
 , \
 
-178 
+176 
 p•t
 ->
 æc_∑øs
@@ -26117,13 +26133,13 @@ ump
 t_Re‹dîög
 , \
 
-179 
+177 
 mac_‰ì_pdu
 , 
 NULL
 );
 
-182 
+180 
 	`æc_um_£t_dñiv_func
 (&
 p•t
@@ -26135,7 +26151,7 @@ um_rx
 sök
 );
 
-186 
+184 
 ±imî_t
  *
 pkt_tx_begö
@@ -26147,19 +26163,19 @@ p•t
 g_mem_±imî_t
 );
 
-187 
+185 
 	`as£π
 (
 pkt_tx_begö
 );
 
-188 
+186 
 pkt_tx_begö
 ->
 duøti⁄
  = 0;
 
-189 
+187 
 pkt_tx_begö
 ->
 ⁄expúed_func
@@ -26167,7 +26183,7 @@ pkt_tx_begö
 pkt_tx_begö_evít
 ;
 
-190 
+188 
 pkt_tx_begö
 ->
 ∑øm
@@ -26175,7 +26191,7 @@ pkt_tx_begö
 p•t
 ;
 
-191 
+189 
 pkt_tx_begö
 ->
 ∑øm
@@ -26183,17 +26199,23 @@ pkt_tx_begö
 PKT_TX_BEGIN
 ;
 
-194 
+192 
 	`æc_timî_°¨t
 (
 pkt_tx_begö
 );
 
-197 
+193 
+	`dŒi°_öô
+(&
+g_sök_∑ckë_li°
+);
+
+194 
 	}
 }
 
-202 
+199 
 	$simu_íd_evít
 (*
 timî
@@ -26203,17 +26225,17 @@ timî
 ¨g2
 )
 
-214 
+211 
 g_is_föished
  = 
 FINISHED
 ;
 
-215 
+212 
 	}
 }
 
-218 
+215 
 u8
 * 
 	$æc_¸óã_sdu
@@ -26223,11 +26245,11 @@ u16
 size
 )
 
-220 
+217 
 i
 ;
 
-221 
+218 
 u8
 * 
 buf
@@ -26237,79 +26259,79 @@ buf
 size
 );
 
-222 
+219 
 	`as£π
  (
 buf
 );
 
-223 
+220 
 i
  = 0; i < 
 size
 ; i++)
 
-224 
+221 
 buf
 [
 i
 ] = 0xee;
 
-226  
+223  
 buf
 ;
 
-227 
+224 
 	}
 }
 
-229 #¥agm®
+226 #¥agm®
 ∑ck
 (1)
 
-231 
+228 
 	smac_pdu_subhód
 
 
-233 
+230 
 u32
  
 	mr
 :2;
 
-234 
+231 
 u32
  
 	me
 :1;
 
-235 
+232 
 u32
  
 	mlc_id
 :5;
 
-236 
+233 
 u32
  
 	mf
 :1;
 
-237 
+234 
 u32
  
 	ml
 :15;
 
-238 }
+235 }
 	tmac_pdu_subhód_t
 ;
 
-240 #¥agm®
+237 #¥agm®
 ∑ck
 ()
 
-242 *
+239 *
 	$mac_Æloc_buf
 (
 u32
@@ -26317,23 +26339,23 @@ u32
 size
 )
 
-244  
+241  
 	`mÆloc
 (
 size
 );
 
-245 
+242 
 	}
 }
 
-252 
+249 
 	#RESERVE_SPACE
  100
 
 	)
 
-253 
+250 
 	$mac_buûd_pdu
 (
 æc_ítôy_um_t
@@ -26351,7 +26373,7 @@ mac_pdu_size
 buf
 )
 
-255 
+252 
 æc_ítôy_um_tx_t
 * 
 æc_umtx
@@ -26359,7 +26381,7 @@ buf
 NULL
 ;
 
-256 
+253 
 u8
  *
 pdu
@@ -26367,7 +26389,7 @@ pdu
 cookõ
 ;
 
-257 
+254 
 mac_pdu_subhód_t
  *
 mac_subhód
@@ -26375,7 +26397,7 @@ mac_subhód
 NULL
 ;
 
-258 
+255 
 u32
  
 hódsize
@@ -26383,13 +26405,13 @@ hódsize
 off£t
  = 0;
 
-259 
+256 
 u32
  
 ∑ddög
  = 0;
 
-261 
+258 
 u32
  
 föÆ_æc_pdu_size
@@ -26397,11 +26419,11 @@ föÆ_æc_pdu_size
 æc_pdu_size
  = 0;
 
-263 *
+260 *
 mac_pdu_size
  = 0;
 
-264 
+261 
 æc_umtx
  = &(
 æc_um
@@ -26409,7 +26431,7 @@ mac_pdu_size
 umtx
 );
 
-265 
+262 
 æc_pdu_size
  = 
 	`æc_um_tx_e°im©e_pdu_size
@@ -26417,11 +26439,11 @@ umtx
 æc_umtx
 );
 
-267 if(
+264 if(
 æc_pdu_size
  == 0)  0;
 
-268 
+265 
 cookõ
  = (
 u8
@@ -26433,13 +26455,13 @@ u8
 RESERVE_SPACE
 );
 
-269 
+266 
 	`as£π
 (
 cookõ
 );
 
-271 
+268 
 föÆ_æc_pdu_size
  = 
 	`æc_um_tx_buûd_pdu
@@ -26453,27 +26475,27 @@ RESERVE_SPACE
 æc_pdu_size
 );
 
-272 if(
+269 if(
 föÆ_æc_pdu_size
  == 0) {
 
-273 
+270 
 	`‰ì
 (
 cookõ
 );
 
-277 
+274 
 æc_pdu_size
  = 
 föÆ_æc_pdu_size
 ;
 
-278 
+275 
 hódsize
  = 1;
 
-279 
+276 
 	`as£π
 (
 hódsize
@@ -26481,7 +26503,7 @@ hódsize
 RESERVE_SPACE
 );
 
-280 
+277 
 pdu
  = 
 cookõ
@@ -26491,7 +26513,7 @@ RESERVE_SPACE
 hódsize
 ;
 
-282 
+279 
 mac_subhód
  = (
 mac_pdu_subhód_t
@@ -26501,13 +26523,13 @@ pdu
 off£t
 );
 
-283 
+280 
 mac_subhód
 ->
 r
  = 0;
 
-284 
+281 
 mac_subhód
 ->
 e
@@ -26515,7 +26537,7 @@ e
 ∑ddög
  == 2);
 
-285 
+282 
 mac_subhód
 ->
 lc_id
@@ -26523,33 +26545,33 @@ lc_id
 MAC_UL_LCID_CCCH
 ;
 
-288 
+285 
 off£t
 ++;
 
-290 *
+287 *
 mac_pdu
  = 
 pdu
 ;
 
-291 *
+288 *
 mac_pdu_size
  = 
 æc_pdu_size
  + 1;
 
-292 *
+289 *
 buf
  = 
 cookõ
 ;
 
-295 
+292 
 	}
 }
 
-298 
+295 
 	$ma¸lc_dump_buf„r
 (
 u8
@@ -26561,33 +26583,33 @@ u16
 Àngth
 )
 
-300 
+297 
 i
 ;
 
-302 
+299 
 i
 =0; i<
 Àngth
 ; i++)
 
-304 if(
+301 if(
 i
 %16 == 0)
 
-305 
+302 
 	`¥ötf
 ("\n");
 
-306 if(
+303 if(
 i
 %8 == 0)
 
-307 
+304 
 	`¥ötf
 ("-- ");
 
-308 
+305 
 	`¥ötf
 ("%02x ", 
 buf„r
@@ -26595,15 +26617,15 @@ buf„r
 i
 ]);
 
-310 
+307 
 	`¥ötf
 ("\n");
 
-311 
+308 
 	}
 }
 
-317 
+314 
 	$pkt_tx_begö_evít
 (*
 timî
@@ -26613,7 +26635,7 @@ timî
 ¨g2
 )
 
-325 
+322 
 u8
  *
 mac_pdu
@@ -26623,13 +26645,13 @@ buf„r
 √w_mac_pdu
 ;
 
-326 
+323 
 u32
  
 mac_pdu_size
 ;
 
-329 
+326 
 simu_∑øs_t
  *
 p•t
@@ -26637,7 +26659,7 @@ p•t
 ¨g1
 ;
 
-330 
+327 
 	`as£π
 ((
 evít_ty≥_t
@@ -26647,7 +26669,7 @@ evít_ty≥_t
 PKT_TX_BEGIN
 );
 
-335 
+332 
 u8
 * 
 sdu_±r
@@ -26661,7 +26683,7 @@ t
 ∑ckë_size
 );
 
-336 
+333 
 	`æc_um_tx_sdu_íqueue
 (&(
 p•t
@@ -26681,7 +26703,7 @@ t
 NULL
 );
 
-339 if–
+336 if–
 	`mac_buûd_pdu
 (&(
 p•t
@@ -26697,17 +26719,17 @@ mac_pdu_size
 buf„r
 ) == 0 ) {
 
-340 
+337 
 	`ZLOG_ERR
 ("failedÅo build MAC PDU\n");
 
-345 
+342 
 	`ZLOG_DEBUG
 ("Rx PDUÜígth=%u.\n", 
 mac_pdu_size
 );
 
-346 
+343 
 	`ma¸lc_dump_buf„r
 (
 mac_pdu
@@ -26715,7 +26737,7 @@ mac_pdu
 mac_pdu_size
 );
 
-348 
+345 
 √w_mac_pdu
  = 
 	`mÆloc
@@ -26723,13 +26745,13 @@ mac_pdu_size
 mac_pdu_size
 );
 
-349 
+346 
 	`as£π
 (
 √w_mac_pdu
 );
 
-350 
+347 
 	`mem˝y
 (
 √w_mac_pdu
@@ -26739,13 +26761,13 @@ mac_pdu
 mac_pdu_size
 );
 
-351 
+348 
 	`‰ì
 (
 buf„r
 );
 
-354 
+351 
 ±imî_t
  *
 pkt_tx_íd
@@ -26757,13 +26779,13 @@ p•t
 g_mem_±imî_t
 );
 
-355 
+352 
 	`as£π
 (
 pkt_tx_íd
 );
 
-357 
+354 
 pkt_tx_íd
 ->
 duøti⁄
@@ -26773,7 +26795,7 @@ p•t
 tx_dñay
 ;
 
-358 
+355 
 pkt_tx_íd
 ->
 ⁄expúed_func
@@ -26781,7 +26803,7 @@ pkt_tx_íd
 pkt_tx_íd_evít
 ;
 
-359 
+356 
 pkt_tx_íd
 ->
 ∑øm
@@ -26789,7 +26811,7 @@ pkt_tx_íd
 p•t
 ;
 
-362 
+359 
 ∑ckë_t
  *
 pkâ
@@ -26801,13 +26823,13 @@ p•t
 g_mem_∑ckë_t
 );
 
-363 
+360 
 	`as£π
 (
 pkâ
 );
 
-365 
+362 
 	`dŒi°_öô
 (&(
 pkâ
@@ -26815,7 +26837,7 @@ pkâ
 node
 ));
 
-366 
+363 
 pkâ
 ->
 £quí˚_no
@@ -26831,7 +26853,7 @@ umtx
 VT_US
 ;
 
-367 
+364 
 pkâ
 ->
 mac_pdu
@@ -26839,13 +26861,13 @@ mac_pdu
 √w_mac_pdu
 ;
 
-368 
+365 
 pkâ
 ->
 mac_pdu_size
  = mac_pdu_size;
 
-369 
+366 
 pkâ
 ->
 ±t
@@ -26853,7 +26875,7 @@ pkâ
 ONGOING
 ;
 
-370 
+367 
 pkâ
 ->
 ∑ckë_size
@@ -26863,7 +26885,7 @@ p•t
 t
 .packet_size;
 
-371 
+368 
 pkâ
 ->
 tx_begö_time°amp
@@ -26871,25 +26893,25 @@ tx_begö_time°amp
 g_time_ña•ed_ö_us
 ;
 
-372 
+369 
 pkâ
 ->
 tx_íd_time°amp
  = 0;
 
-373 
+370 
 pkâ
 ->
 rx_dñivî_time°amp
  = 0;
 
-374 
+371 
 pkâ
 ->
 jôãr
  = 0;
 
-376 
+373 
 pkt_tx_íd
 ->
 ∑øm
@@ -26897,13 +26919,13 @@ pkt_tx_íd
 pkâ
 ;
 
-378 
+375 
 	`æc_timî_°¨t
 (
 pkt_tx_íd
 );
 
-385 
+382 
 	`FASTFREE
 (
 p•t
@@ -26913,11 +26935,11 @@ g_mem_±imî_t
 timî
 );
 
-386 
+383 
 	}
 }
 
-392 
+389 
 	$pkt_tx_íd_evít
 (*
 timî
@@ -26927,7 +26949,7 @@ timî
 ¨g2
 )
 
-406 
+403 
 simu_∑øs_t
  *
 p•t
@@ -26935,7 +26957,7 @@ p•t
 ¨g1
 ;
 
-407 
+404 
 ∑ckë_t
  *
 pkâ
@@ -26943,13 +26965,13 @@ pkâ
 ¨g2
 ;
 
-408 
+405 
 	`as£π
 (
 pkâ
 );
 
-411 
+408 
 pkâ
 ->
 tx_íd_time°amp
@@ -26957,13 +26979,13 @@ tx_íd_time°amp
 g_time_ña•ed_ö_us
 ;
 
-414 
+411 
 u32
  
 tx_öãrvÆ
  = 1;
 
-417 
+414 
 ±imî_t
  *
 pkt_tx_begö
@@ -26975,13 +26997,13 @@ p•t
 g_mem_±imî_t
 );
 
-418 
+415 
 	`as£π
 (
 pkt_tx_begö
 );
 
-419 
+416 
 pkt_tx_begö
 ->
 duøti⁄
@@ -26989,7 +27011,7 @@ duøti⁄
 tx_öãrvÆ
 ;
 
-420 
+417 
 pkt_tx_begö
 ->
 ⁄expúed_func
@@ -26997,7 +27019,7 @@ pkt_tx_begö
 pkt_tx_begö_evít
 ;
 
-421 
+418 
 pkt_tx_begö
 ->
 ∑øm
@@ -27005,7 +27027,7 @@ pkt_tx_begö
 p•t
 ;
 
-422 
+419 
 pkt_tx_begö
 ->
 ∑øm
@@ -27013,13 +27035,13 @@ pkt_tx_begö
 PKT_TX_BEGIN
 ;
 
-424 
+421 
 	`æc_timî_°¨t
 (
 pkt_tx_begö
 );
 
-429 
+426 
 ±imî_t
  *
 pkt_rx_íd
@@ -27031,13 +27053,13 @@ p•t
 g_mem_±imî_t
 );
 
-430 
+427 
 	`as£π
 (
 pkt_rx_íd
 );
 
-431 
+428 
 pkt_rx_íd
 ->
 duøti⁄
@@ -27049,7 +27071,7 @@ p•t
 ¥›_dñay
 ;
 
-432 
+429 
 pkt_rx_íd
 ->
 ⁄expúed_func
@@ -27057,7 +27079,7 @@ pkt_rx_íd
 pkt_rx_íd_evít
 ;
 
-433 
+430 
 pkt_rx_íd
 ->
 ∑øm
@@ -27065,7 +27087,7 @@ pkt_rx_íd
 p•t
 ;
 
-434 
+431 
 pkt_rx_íd
 ->
 ∑øm
@@ -27073,13 +27095,13 @@ pkt_rx_íd
 ¨g2
 ;
 
-436 
+433 
 	`æc_timî_°¨t
 (
 pkt_rx_íd
 );
 
-442 
+439 
 	`FASTFREE
 (
 p•t
@@ -27089,11 +27111,11 @@ g_mem_±imî_t
 timî
 );
 
-443 
+440 
 	}
 }
 
-450 
+447 
 	$mac_¥o˚ss_pdu
 (
 æc_ítôy_um_rx_t
@@ -27109,13 +27131,13 @@ u32
 pdu_Àn
 )
 
-452 
+449 
 u32
  
 lc_id
 ;
 
-453 
+450 
 u32
  
 i
@@ -27123,25 +27145,25 @@ i
 l
  = 0;
 
-454 
+451 
 u32
  
 ªt
  = 0;
 
-455 
+452 
 u32
  
 n_sdu
  = 0;
 
-456 
+453 
 À·_Àn
  = 
 pdu_Àn
 ;
 
-457 
+454 
 u8
  *
 mac_sdu
@@ -27149,7 +27171,7 @@ mac_sdu
 NULL
 ;
 
-458 
+455 
 mac_pdu_subhód_t
  *
 subhód_±r
@@ -27157,23 +27179,23 @@ subhód_±r
 mac_pdu
 ;
 
-459 
+456 
 mac_pdu_subhód_t
  
 subhód
 [32];
 
-462 
+459 
 À·_Àn
  > 0)
 
-464 if(
+461 if(
 subhód_±r
 ->
 e
  == 0)
 
-466 
+463 
 subhód
 [
 n_sdu
@@ -27183,7 +27205,7 @@ lc_id
 subhód_±r
 ->lc_id;
 
-467 
+464 
 subhód
 [
 n_sdu
@@ -27193,7 +27215,7 @@ l
 À·_Àn
 -1;
 
-468 
+465 
 mac_sdu
  = (
 u8
@@ -27201,23 +27223,23 @@ u8
 subhód_±r
  + 1;
 
-469 
+466 
 n_sdu
  ++;
 
-470 
+467 
 À·_Àn
  = 0;
 
-476 
+473 
 	`ZLOG_ERR
 ("this shouldÇot happen!\n");
 
-477 
+474 
 	`as£π
 (0);
 
-481 if(
+478 if(
 mac_sdu
  =
 NULL
@@ -27227,7 +27249,7 @@ n_sdu
 À·_Àn
  != 0)
 
-483 
+480 
 	`ZLOG_ERR
 ("mac_sdu=0x%∞n_sdu=%uÜe·_Àn=%d.\n", 
 mac_sdu
@@ -27237,13 +27259,13 @@ n_sdu
 À·_Àn
 );
 
-487 
+484 
 i
 =0; i<
 n_sdu
 ; i++)
 
-489 
+486 
 lc_id
  = 
 subhód
@@ -27251,7 +27273,7 @@ subhód
 i
 ].lc_id;
 
-490 
+487 
 l
  = 
 subhód
@@ -27259,7 +27281,7 @@ subhód
 i
 ].l;
 
-493 
+490 
 	`ZLOG_DEBUG
 ("Rx MAC PDU sub-hódî: LCID=%u L=%u.\n", 
 lc_id
@@ -27267,17 +27289,17 @@ lc_id
 l
 );
 
-496 
+493 
 lc_id
 )
 
-500 
+497 
 	`as£π
 (
 l
  > 0);
 
-501 if(
+498 if(
 	`æc_um_rx_¥o˚ss_pdu
 (
 umrx
@@ -27289,25 +27311,25 @@ l
 mac_pdu
 ) != 0)
 
-502 
+499 
 	`ZLOG_WARN
 ("rlc_um_rx_process_pdu() failure.\n");
 
-506 
+503 
 mac_sdu
  +
 l
 ;
 
-508  
+505  
 ªt
 ;
 
-509 
+506 
 	}
 }
 
-515 
+512 
 	$pkt_rx_íd_evít
 (*
 timî
@@ -27317,7 +27339,7 @@ timî
 ¨g2
 )
 
-523 
+520 
 simu_∑øs_t
  *
 p•t
@@ -27325,7 +27347,7 @@ p•t
 ¨g1
 ;
 
-524 
+521 
 ∑ckë_t
  *
 pkâ
@@ -27333,13 +27355,13 @@ pkâ
 ¨g2
 ;
 
-525 
+522 
 	`as£π
 (
 pkâ
 );
 
-529 
+526 
 pkâ
 ->
 ±t
@@ -27347,7 +27369,7 @@ pkâ
 RX_OK
 ;
 
-533 
+530 
 p•t
 ->
 æc_rx
@@ -27359,7 +27381,7 @@ umrx
 pkâ
  =Öktt;
 
-534 
+531 
 	`mac_¥o˚ss_pdu
 (&(
 p•t
@@ -27377,7 +27399,7 @@ mac_pdu
 mac_pdu_size
 );
 
-541 
+538 
 	`FASTFREE
 (
 p•t
@@ -27387,11 +27409,11 @@ g_mem_±imî_t
 timî
 );
 
-542 
+539 
 	}
 }
 
-545 
+542 
 	$maö
  (
 ¨gc
@@ -27399,13 +27421,13 @@ timî
 ¨gv
 [])
 
-556 
+553 
 simu_∑øs_t
  
 •t
 ;
 
-557 
+554 
 •t
 .
 t
@@ -27413,7 +27435,7 @@ t
 ∑ckë_size
  = 100;
 
-558 
+555 
 •t
 .
 æ
@@ -27421,7 +27443,7 @@ t
 lök_di°™˚
  = 0;
 
-559 
+556 
 •t
 .
 æ
@@ -27431,7 +27453,7 @@ lök_di°™˚
 	`MS2US
 (270);
 
-560 
+557 
 •t
 .
 æ
@@ -27439,7 +27461,7 @@ lök_di°™˚
 lök_b™dwidth
  = 1024;
 
-561 
+558 
 •t
 .
 æ
@@ -27447,7 +27469,7 @@ lök_b™dwidth
 ≥r
  = 10;
 
-563 
+560 
 •t
 .
 tx_dñay
@@ -27455,7 +27477,7 @@ tx_dñay
 OCTET
  *
 
-564 (
+561 (
 •t
 .
 t
@@ -27463,15 +27485,15 @@ t
 ∑ckë_size
  +
 
-565 
+562 
 MAC_HEADER_SIZE
  +
 
-566 
+563 
 PHY_HEADER_SIZE
 ))
 
-567 / 
+564 / 
 •t
 .
 æ
@@ -27479,7 +27501,7 @@ PHY_HEADER_SIZE
 lök_b™dwidth
  );
 
-571 
+568 
 •t
 .
 æc_∑øs
@@ -27491,7 +27513,7 @@ t_Re‹dîög
 	`MS2US
 (5);
 
-572 
+569 
 •t
 .
 æc_∑øs
@@ -27501,7 +27523,7 @@ ump
 UM_Wödow_Size
  = 512;
 
-573 
+570 
 •t
 .
 æc_∑øs
@@ -27511,13 +27533,13 @@ ump
 ¢_FõldLígth
  = 10;
 
-575 
+572 
 	#PTIMER_MEM_MAX
  4096
 
 	)
 
-576 
+573 
 •t
 .
 g_mem_±imî_t
@@ -27529,7 +27551,7 @@ g_mem_±imî_t
 PTIMER_MEM_MAX
 , 0, 100);
 
-577 
+574 
 	`as£π
 (
 •t
@@ -27537,13 +27559,13 @@ PTIMER_MEM_MAX
 g_mem_±imî_t
 );
 
-579 
+576 
 	#PACKET_MEM_MAX
- 4096
+ (4096*16*16)
 
 	)
 
-580 
+577 
 •t
 .
 g_mem_∑ckë_t
@@ -27555,7 +27577,7 @@ g_mem_∑ckë_t
 PACKET_MEM_MAX
 , 0, 100);
 
-581 
+578 
 	`as£π
 (
 •t
@@ -27563,7 +27585,7 @@ PACKET_MEM_MAX
 g_mem_∑ckë_t
 );
 
-588 
+585 
 zlog_deÁu…
  = 
 	`›ízlog
@@ -27571,11 +27593,11 @@ zlog_deÁu…
 ZLOG_STDOUT
 );
 
-589 
+586 
 	`ZLOG_DEBUG
 ("pkt size = %d,Örop delay = %d,Üink bandwidth = %d," \
 
-590 "tx dñay = %d\n", 
+587 "tx dñay = %d\n", 
 •t
 .
 t
@@ -27587,7 +27609,7 @@ t
 ¥›_dñay
 ,
 
-591 
+588 
 •t
 .
 æ
@@ -27597,73 +27619,129 @@ lök_b™dwidth
 tx_dñay
 );
 
-595 
+592 
 ±imî_t
  
 simu_begö_timî
  = {
 
-596 .
+593 .
 duøti⁄
  = 0,
 
-597 .
+594 .
 ⁄expúed_func
  = 
 simu_begö_evít
 ,
 
-598 .
+595 .
 ∑øm
 [0] = (*Ë&
 •t
 ,
 
-599 .
+596 .
 ∑øm
 [1] = (*Ë
 SIMU_BEGIN
 ,
 
-603 
+600 
 	`æc_öô
 ();
 
-604 
+601 
 	`æc_timî_°¨t
 (&
 simu_begö_timî
 );
 
-607 
+604 
 °ï_ö_us
  = 1;
 
-609 
+606 
 g_is_föished
  =
 NOT_FINISHED
-) {
+ && 
+g_time_ña•ed_ö_us
+ <
+	`MS2US
+(
+	`S2MS
+(10)) ) {
 
-610 
+607 
 	`æc_timî_push
 (
 °ï_ö_us
 );
 
-611 
+608 
 g_time_ña•ed_ö_us
  +
 °ï_ö_us
 ;
 
-613 
+612 
 	`ZLOG_DEBUG
 ("time_ña•ed_ö_u†%d\n", 
 g_time_ña•ed_ö_us
 );
 
-616 
+614 
+˙t
+ = 0;
+
+615 !
+	`DLLIST_EMPTY
+(&
+g_sök_∑ckë_li°
+)) {
+
+617 
+∑ckë_t
+ *
+pkâ
+ = (∑ckë_t*Ë
+	`DLLIST_HEAD
+(&
+g_sök_∑ckë_li°
+);
+
+618 
+	`dŒi°_ªmove
+(&
+g_sök_∑ckë_li°
+, &(
+pkâ
+->
+node
+));
+
+619 
+˙t
+++;
+
+620 
+	`FASTFREE
+(
+•t
+.
+g_mem_∑ckë_t
+, 
+pkâ
+);
+
+622 
+	`ZLOG_DEBUG
+("˙à%d\n", 
+˙t
+);
+
+624 
 	}
 }
 
