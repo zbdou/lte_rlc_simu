@@ -562,7 +562,7 @@ void output_tx_throughput(packet_t* pktt)
 		/* output the result */
 		while (!DLLIST_EMPTY(&tx_tpt_list)) {
 			tx_throughput_t *ttt = (tx_throughput_t*) DLLIST_HEAD(&tx_tpt_list);
-			ZLOG_INFO("tx tpt: at [%d, %d)s, throughput %f kbps\n", ttt->time, ttt->time + 1, ((double) ttt->throughput)/1024 /* kbps */);
+			ZLOG_INFO("tx tpt: at [%d, %d)s, throughput %f kbps\n", ttt->time, ttt->time + 1, ((double) ttt->throughput) /* bps */);
 			dllist_remove(&tx_tpt_list, &(ttt->node));
 			free(ttt);
 		}
@@ -575,14 +575,15 @@ void output_tx_throughput(packet_t* pktt)
 
 	u32 integer_begin = (pktt->tx_begin_timestamp - remainder_begin) / MS2US(S2MS(1));
 	u32 integer_end = (pktt->tx_end_timestamp - remainder_end) / MS2US(S2MS(1));
+
+	tx_throughput_t * ttt = (tx_throughput_t*) DLLIST_TAIL(&tx_tpt_list);
 	
 	if ( integer_begin == integer_end ) {
 		/* in the same time range */
 		/* if have, get it */
-		tx_throughput_t * ttt = (tx_throughput_t*) DLLIST_TAIL(&tx_tpt_list);
 		if (DLLIST_IS_HEAD(&tx_tpt_list, ttt) || ttt->time != integer_begin) {
 			/* new one */
-			tx_throughput_t * new_ttt = (tx_throughput_t*) malloc(sizeof(tx_throughput_t));
+			tx_throughput_t *new_ttt = (tx_throughput_t*) malloc(sizeof(tx_throughput_t));
 			assert(new_ttt);
 			new_ttt->time = integer_begin;
 			new_ttt->throughput = pktt->mac_pdu_size;
@@ -592,8 +593,26 @@ void output_tx_throughput(packet_t* pktt)
 			ttt->throughput += (pktt->mac_pdu_size * OCTET);
 		}
 	} else {
-		/* not in the same time range, split */
-		/* FIXME: */
+		/* not in the same time range, split it based on the pktt->mac_pdu_size */
+		assert(integer_end - integer_begin == 1);
+		u32 total = pktt->tx_end_timestamp - pktt->tx_begin_timestamp;
+
+		if (DLLIST_IS_HEAD(&tx_tpt_list, ttt)) {
+			ttt = (tx_throughput_t*) malloc(sizeof(tx_throughput_t));
+			dllist_append(&tx_tpt_list, &(ttt->node));
+		}
+
+		u32 part = (pktt->mac_pdu_size * OCTET) * remainder_end / total;
+		tx_throughput_t *new_ttt = (tx_throughput_t*) malloc(sizeof(tx_throughput_t));
+		new_ttt->time = integer_end;
+		new_ttt->throughput = (pktt->mac_pdu_size * OCTET) * remainder_end / total;
+		dllist_append(&tx_tpt_list, &(new_ttt->node));
+
+		ttt->time = integer_begin;
+		ttt->throughput += (pktt->mac_pdu_size * OCTET) * (1 - remainder_end / total);
+		ZLOG_DEBUG("begin %d, remainder %d, tpt: %d, end %d, remainder %d, tpt: %d\n",
+				  integer_begin, remainder_begin, pktt->mac_pdu_size * OCTET - part,
+				  integer_end, remainder_end, part);
 	}
 }
 
