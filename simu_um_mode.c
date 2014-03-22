@@ -413,7 +413,7 @@ void pkt_tx_end_event(void *timer, void* arg1, void* arg2)
 	pktt->tx_end_timestamp = g_time_elasped_in_us;
 
 	/* 2. FIXME */
-	u32 tx_interval = 1;		/* us */	
+	u32 tx_interval = 0;		/* us */	
 
 	/* 3. & 4. */
 	ptimer_t *pkt_tx_begin = (ptimer_t*)FASTALLOC(pspt->g_mem_ptimer_t);
@@ -547,9 +547,12 @@ typedef struct {
 	dllist_node_t node;
 	u32 throughput;				/* in bps */
 	u32 time;					/* at which time, in second, e.g. time = 3, means [3, 4) */
-} tx_throughput_t;
+} throughput_t;
 
-void output_tx_throughput(packet_t* pktt)
+typedef throughput_t tx_throughput_t;
+typedef throughput_t rx_throughput_t;
+
+void output_tx_throughput(packet_t *pktt)
 {
 	/* unit: second, based on the pktt->tx_begin_timestamp, the pktt->tx_end_timestamp */
 	static dllist_node_t tx_tpt_list = {
@@ -562,7 +565,7 @@ void output_tx_throughput(packet_t* pktt)
 		/* output the result */
 		while (!DLLIST_EMPTY(&tx_tpt_list)) {
 			tx_throughput_t *ttt = (tx_throughput_t*) DLLIST_HEAD(&tx_tpt_list);
-			ZLOG_INFO("tx tpt: at [%d, %d)s, throughput %f kbps\n", ttt->time, ttt->time + 1, ((double) ttt->throughput) /* bps */);
+			ZLOG_INFO("tx tpt: at [%d, %d)s, throughput %d bps\n", ttt->time, ttt->time + 1, ttt->throughput /* bps */);
 			dllist_remove(&tx_tpt_list, &(ttt->node));
 			free(ttt);
 		}
@@ -586,7 +589,7 @@ void output_tx_throughput(packet_t* pktt)
 			tx_throughput_t *new_ttt = (tx_throughput_t*) malloc(sizeof(tx_throughput_t));
 			assert(new_ttt);
 			new_ttt->time = integer_begin;
-			new_ttt->throughput = pktt->mac_pdu_size;
+			new_ttt->throughput = pktt->mac_pdu_size * OCTET;
 			dllist_append(&tx_tpt_list, &(new_ttt->node));
 		} else {
 			/* already existed, update it */
@@ -604,6 +607,7 @@ void output_tx_throughput(packet_t* pktt)
 
 		u32 part = (pktt->mac_pdu_size * OCTET) * remainder_end / total;
 		tx_throughput_t *new_ttt = (tx_throughput_t*) malloc(sizeof(tx_throughput_t));
+		assert(new_ttt);
 		new_ttt->time = integer_end;
 		new_ttt->throughput = (pktt->mac_pdu_size * OCTET) * remainder_end / total;
 		dllist_append(&tx_tpt_list, &(new_ttt->node));
@@ -613,6 +617,42 @@ void output_tx_throughput(packet_t* pktt)
 		ZLOG_DEBUG("begin %d, remainder %d, tpt: %d, end %d, remainder %d, tpt: %d\n",
 				  integer_begin, remainder_begin, pktt->mac_pdu_size * OCTET - part,
 				  integer_end, remainder_end, part);
+	}
+}
+
+void output_rx_throughput(packet_t *pktt)
+{
+	static dllist_node_t rx_tpt_list = {
+		.prev = &rx_tpt_list,
+		.next = &rx_tpt_list
+	};
+
+	if (pktt == NULL) {
+		/* output the result */
+		while (!DLLIST_EMPTY(&rx_tpt_list)) {
+			rx_throughput_t *ttt = (rx_throughput_t*) DLLIST_HEAD(&rx_tpt_list);
+			ZLOG_INFO("rx tpt: at [%d, %d)s, throughput %d bps\n", ttt->time, ttt->time + 1, ttt->throughput /* bps */);
+			dllist_remove(&rx_tpt_list, &(ttt->node));
+			free(ttt);
+		}
+		return;
+	}
+
+	/* pktt != NULL, calcuate the rx *delivery* throughput */
+	u32 remainder = pktt->rx_deliver_timestamp % (u32) MS2US(S2MS(1));
+	u32 integer = (pktt->rx_deliver_timestamp - remainder) / MS2US(S2MS(1));
+	rx_throughput_t * ttt = (rx_throughput_t*) DLLIST_TAIL(&rx_tpt_list);
+
+	if (DLLIST_IS_HEAD(&rx_tpt_list, ttt) || ttt->time != integer) {
+		/* new one */
+		rx_throughput_t *new_ttt = (rx_throughput_t*) malloc(sizeof(rx_throughput_t));
+		assert(new_ttt);
+		new_ttt->time = integer;
+		new_ttt->throughput = pktt->packet_size;
+		dllist_append(&rx_tpt_list, &(new_ttt->node));
+	} else {
+		/* already existed, update it */
+		ttt->throughput += (pktt->packet_size * OCTET);
 	}
 }
 
@@ -683,7 +723,6 @@ int main (int argc, char *argv[])
 
 	/* 4. */
 	int step_in_us = 1;
-	// while (!g_is_finished && time_elasped_in_us <= MS2US(S2MS(1000))) {
 	while (g_is_finished == NOT_FINISHED && g_time_elasped_in_us <= MS2US(S2MS(150)) ) {		
 		rlc_timer_push(step_in_us);		/* us */
 		g_time_elasped_in_us += step_in_us;
@@ -698,14 +737,16 @@ int main (int argc, char *argv[])
 
 		/* 1. tx throughput */
 		output_tx_throughput(pktt);
-
+		output_rx_throughput(pktt);
+		
 		dllist_remove(&g_sink_packet_list, &(pktt->node));
 		cnt++;
 		FASTFREE(spt.g_mem_packet_t, pktt);		
 	}
 
 	output_tx_throughput(NULL);
-	
+	output_rx_throughput(NULL);
+
 	ZLOG_INFO("cnt = %d\n", cnt);
 
 	return 0;
