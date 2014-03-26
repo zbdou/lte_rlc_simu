@@ -41,11 +41,12 @@ typedef struct {
 	u32 packet_size;			/* in bytes */
 } traffic_t;
 
+#define RAND_BASE (1e4)
 typedef struct {
 	u32 link_distance;			/* kilometers */
 	u32 prop_delay;				/* in ms */
 	u32 link_bandwidth;			/* in kbps */
-	u32 per;					/* pakcet error ratio, (per/10)% */
+	u32 per;					/* pakcet error ratio, (per/100)% */
 } radio_link_t;
 
 typedef struct {
@@ -112,7 +113,7 @@ void pkt_tx_begin_event(void *timer, void* arg1, void* arg2);
 void pkt_tx_end_event(void *timer, void* arg1, void* arg2);
 
 /* the sink
-   set the rlc um rx -> deliv_sdr function pointer to this sink function
+   set the rlc um rx -> deliv function pointer to this sink function
  */
 void sink(struct rlc_entity_um_rx *umrx, rlc_sdu_t* sdu)
 {
@@ -510,30 +511,44 @@ int mac_process_pdu(rlc_entity_um_rx_t *umrx, u8 *mac_pdu, u32 pdu_len)
 	return ret;	
 }
 
+#define DISCARD 1
+#define NO_DISCARD 0
+int BER(simu_paras_t *pspt)
+{
+	u32 random = (u32)(RAND_BASE * rand() / (RAND_MAX + 1.0));
+	ZLOG_INFO("random = %d\n", random);
+	return (random < pspt->rl.per ? DISCARD : NO_DISCARD);
+}
 /*
   @arg1 in pointer to the simu_paras_t struct
   @arg2 in pointer to the packet_t struct
  */
 void pkt_rx_end_event(void *timer, void* arg1, void* arg2)
 {
-	/*
-	  if (BER is on && BER(packet) == discard) {
-	     discard this packet
-	  } else
-	     hand this packet to the RLC RX entity	  
-	 */
 	simu_paras_t *pspt = (simu_paras_t*) arg1;
 	packet_t *pktt = (packet_t*) arg2;
 	assert(pktt);
 
 
-	/* 1. update this packet's statistics */
-	pktt->ptt = RX_OK;
+	if (BER(pspt) == DISCARD) {
+		/* mark this packet as corrupted */
+		ZLOG_INFO("mark this packet as corrupted\n");
+		pktt->ptt = RX_ERR;
+
+		/* add this packet to the packet list */
+		dllist_append(&g_sink_packet_list, &(pktt->node));
+		
+		/* free the mac pdu buffer */
+		mac_free_pdu(NULL, pktt->mac_pdu);
+	} else {
+		/* 1. update this packet's statistics */
+		pktt->ptt = RX_OK;
 	
-	/* 2. call mac_process_pdu to handle this packet */
-	/* 3. mac pdu is freed in the mac_process_pdu */
-	pspt->rlc_rx.um_rx.umrx.pktt = pktt;
-	mac_process_pdu(&(pspt->rlc_rx.um_rx.umrx), pktt->mac_pdu, pktt->mac_pdu_size);
+		/* 2. call mac_process_pdu to handle this packet */
+		/* 3. mac pdu is freed in the mac_process_pdu */
+		pspt->rlc_rx.um_rx.umrx.pktt = pktt;
+		mac_process_pdu(&(pspt->rlc_rx.um_rx.umrx), pktt->mac_pdu, pktt->mac_pdu_size);
+	}
 
 	/*
 	ZLOG_DEBUG("going to be finished!\n");
@@ -627,6 +642,9 @@ void output_rx_throughput(packet_t *pktt)
 		.next = &rx_tpt_list
 	};
 
+	if (pktt && pktt->ptt != RX_OK) return;
+	
+
 	if (pktt == NULL) {
 		/* output the result */
 		while (!DLLIST_EMPTY(&rx_tpt_list)) {
@@ -672,7 +690,7 @@ int main (int argc, char *argv[])
 	spt.rl.link_distance = 0;
 	spt.rl.prop_delay = MS2US(270);	/* 270 ms */
 	spt.rl.link_bandwidth = 100;	/* 100 kbps */
-	spt.rl.per = 10;
+	spt.rl.per = 1000;				/* 10/10000 */
 
 	/* this should be set when the mac pdu is build (at the tx_begin_event) */
 	/*
@@ -717,13 +735,17 @@ int main (int argc, char *argv[])
 		.param[1] = (void*) SIMU_BEGIN,
 	};
 
+	time_t t;
+	
+	srand((unsigned) time(&t));
+	
 	/* 3. */
 	rlc_init();
 	rlc_timer_start(&simu_begin_timer);
 
 	/* 4. */
 	int step_in_us = 1;
-	while (g_is_finished == NOT_FINISHED && g_time_elasped_in_us <= MS2US(S2MS(150)) ) {		
+	while (g_is_finished == NOT_FINISHED && g_time_elasped_in_us <= MS2US(S2MS(500)) ) {		
 		rlc_timer_push(step_in_us);		/* us */
 		g_time_elasped_in_us += step_in_us;
 	}
