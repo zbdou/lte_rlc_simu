@@ -31,6 +31,7 @@
 
 #define RLC_SN_MAX_5BITS ((1<<5)-1)
 #define RLC_SN_MAX_10BITS ((1<<10)-1)
+#define RLC_SN_MAX_16BITS ((1<<16)-1)
 
 #define RLC_LI_VALUE_MAX 2047
 
@@ -58,6 +59,19 @@ typedef struct rlc_um_pdu_head_10bits
 	u32 e:1;
 	u32 sn:10;
 }rlc_um_pdu_head_10bits_t;
+
+/* zbdou */
+typedef struct rlc_um_pdu_head_16bits
+{
+	u32 r1_1:1;
+	u32 r1_2:1;
+	u32 r1_3:1;
+	u32 fi:2;
+	u32 e:1;
+	u32 sn:18;
+} rlc_um_pdu_head_16bits_t;
+
+
 
 typedef struct rlc_am_pdu_head
 {

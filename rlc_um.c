@@ -105,11 +105,11 @@ void rlc_um_pdu_free(rlc_um_pdu_t *pdu)
 static void t_Reordering_um_func(void *timer, void* arg1, void* arg2)
 {
 	rlc_entity_um_rx_t *umrx = (rlc_entity_um_rx_t *)arg1;
-	u16 sn, sn_fs;
+	u32 sn, sn_fs;
 	
 	assert(umrx);
 
-	ZLOG_DEBUG("RLC UM Counter after t_Reordering expires: lcid=%d VR_UR=%u VR_UX=%u VR_UH=%u.\n", 
+	ZLOG_INFO("RLC UM Counter after t_Reordering expires: lcid=%d VR_UR=%u VR_UX=%u VR_UH=%u.\n", 
 				umrx->logical_chan, umrx->VR_UR, umrx->VR_UX, umrx->VR_UH);
 /*
   When t-Reordering expires, the receiving UM RLC entity shall:
@@ -127,7 +127,7 @@ static void t_Reordering_um_func(void *timer, void* arg1, void* arg2)
 	{
 		if(umrx->pdu[sn])
 		{
-			ZLOG_DEBUG("t_Reordering: assembly RLC UM SDU from PDU: lcid=%d sn=%u.\n", umrx->logical_chan, sn);
+			ZLOG_INFO("t_Reordering: assembly RLC UM SDU from PDU: lcid=%d sn=%u.\n", umrx->logical_chan, sn);
 			rlc_um_rx_assemble_sdu(umrx, umrx->pdu[sn]);
 			umrx->pdu[sn] = NULL;
 		}
@@ -137,14 +137,14 @@ static void t_Reordering_um_func(void *timer, void* arg1, void* arg2)
 
 	if(RLC_SN_LESS(umrx->VR_UR, umrx->VR_UH, sn_fs))
 	{
-		ZLOG_DEBUG("RLC UM start timer: t_Reordering lcid=%d duration=%u.\n", 
+		ZLOG_INFO("RLC UM start timer: t_Reordering lcid=%d duration=%u.\n", 
 				umrx->logical_chan, umrx->t_Reordering.duration);
 		rlc_timer_start(&umrx->t_Reordering);
 		
 		umrx->VR_UX = umrx->VR_UH;
 	}
 	
-	ZLOG_DEBUG("RLC UM Counter after t_Reordering processing: lcid=%d VR_UR=%u VR_UX=%u VR_UH=%u.\n", 
+	ZLOG_INFO("RLC UM Counter after t_Reordering processing: lcid=%d VR_UR=%u VR_UX=%u VR_UH=%u.\n", 
 			umrx->logical_chan, umrx->VR_UR, umrx->VR_UX, umrx->VR_UH);
 
 	/* deliver intact SDU to upper */
@@ -222,7 +222,18 @@ u32 rlc_um_tx_estimate_pdu_size(rlc_entity_um_tx_t *umtx)
 		return 0;
 	
 	/* get length of RLD PDU header */
-	head_len = (umtx->sn_max==RLC_SN_MAX_5BITS)?1:2;
+	switch (umtx->sn_max) {
+	case RLC_SN_MAX_5BITS:
+		head_len = 1;
+		break;
+	case RLC_SN_MAX_10BITS:
+		head_len = 2;
+		break;
+	case RLC_SN_MAX_16BITS:
+		head_len = 3;
+		break;
+	}
+	// head_len = (umtx->sn_max==RLC_SN_MAX_5BITS)?1:2;
 	
 	/* number of LI equals to n_sdu-1 */
 	li_len = ((umtx->n_sdu-1)>>1)*3;
@@ -274,8 +285,22 @@ int rlc_um_tx_build_pdu(rlc_entity_um_tx_t *umtx, u8 *buf_ptr, u16 pdu_size)
 		pdu.fi |= 0x02;			//NFIRST
 	else
 		pdu.fi &= 0x01;			//FIRST
+
+
+	switch (umtx->sn_max) {
+	case RLC_SN_MAX_5BITS:
+		head_len = 1;
+		break;
+	case RLC_SN_MAX_10BITS:
+		head_len = 2;
+		break;
+	case RLC_SN_MAX_16BITS:
+		head_len = 3;
+		break;
+	}
 		
-	head_len = (umtx->sn_max==RLC_SN_MAX_5BITS)?1:2;
+	// head_len = (umtx->sn_max==RLC_SN_MAX_5BITS)?1:2;
+
 	if(pdu_size < head_len)		//at leaset 1 byte data
 		return 0;
 
@@ -330,10 +355,21 @@ int rlc_um_tx_build_pdu(rlc_entity_um_tx_t *umtx, u8 *buf_ptr, u16 pdu_size)
 			umtx->logical_chan, pdu_head->fi, pdu_head->sn, pdu.n_li, 
 			pdu.li_s[0], pdu.li_s[1], pdu.li_s[2]);
 	}
-	else
-	{
+	else if (umtx->sn_max == RLC_SN_MAX_10BITS) {
 		rlc_um_pdu_head_10bits_t *pdu_head;
 		pdu_head = (rlc_um_pdu_head_10bits_t *)buf_ptr;
+		*buf_ptr = 0;			//set r1
+		pdu_head->e = (pdu.n_li > 1);
+		pdu_head->fi = pdu.fi;
+		pdu_head->sn = umtx->VT_US;
+
+		ZLOG_DEBUG("After build: lcid=%d fi=%u sn=%u n_li=%u li_s=(%u %u %u ..)\n", 
+			umtx->logical_chan, pdu_head->fi, pdu_head->sn, pdu.n_li, 
+			pdu.li_s[0], pdu.li_s[1], pdu.li_s[2]);
+	} else {
+		/* RLC_SN_MAX_16BITS */
+		rlc_um_pdu_head_16bits_t *pdu_head;
+		pdu_head = (rlc_um_pdu_head_16bits_t *)buf_ptr;
 		*buf_ptr = 0;			//set r1
 		pdu_head->e = (pdu.n_li > 1);
 		pdu_head->fi = pdu.fi;
@@ -365,7 +401,7 @@ int rlc_um_tx_build_pdu(rlc_entity_um_tx_t *umtx, u8 *buf_ptr, u16 pdu_size)
 /***********************************************************************************/
 int rlc_um_rx_process_pdu(rlc_entity_um_rx_t *umrx, u8 *buf_ptr, u32 buf_len, void *cookie)
 {
-	u16 sn, sn_fs, sn_reodering_low;
+	u32 sn, sn_fs, sn_reodering_low;
 	rlc_li_t *li_ptr = NULL;
 	u32 e;
 	rlc_um_pdu_t *pdu;
@@ -396,7 +432,7 @@ int rlc_um_rx_process_pdu(rlc_entity_um_rx_t *umrx, u8 *buf_ptr, u32 buf_len, vo
 		li_ptr = (rlc_li_t *)(pdu_hdr+1);
 		e = pdu_hdr->e;
 	}
-	else
+	else if (umrx->sn_max == RLC_SN_MAX_10BITS)
 	{
 		rlc_um_pdu_head_10bits_t *pdu_hdr;
 		
@@ -405,6 +441,17 @@ int rlc_um_rx_process_pdu(rlc_entity_um_rx_t *umrx, u8 *buf_ptr, u32 buf_len, vo
 		sn = pdu->sn = pdu_hdr->sn;
 		sn_fs = RLC_SN_MAX_10BITS+1;
 		buf_len -= 2;
+		li_ptr = (rlc_li_t *)(pdu_hdr+1);
+		e = pdu_hdr->e;
+	} else {
+		/* RLC_SN_MAX_16BITS */
+		rlc_um_pdu_head_16bits_t *pdu_hdr;
+		
+		pdu_hdr = (rlc_um_pdu_head_16bits_t *)buf_ptr;
+		pdu->fi = pdu_hdr->fi;
+		sn = pdu->sn = pdu_hdr->sn;
+		sn_fs = RLC_SN_MAX_16BITS+1;
+		buf_len -= 3;			/* zbdou */
 		li_ptr = (rlc_li_t *)(pdu_hdr+1);
 		e = pdu_hdr->e;
 	}
@@ -468,7 +515,7 @@ int rlc_um_rx_process_pdu(rlc_entity_um_rx_t *umrx, u8 *buf_ptr, u32 buf_len, vo
 */
 	if(!RLC_SN_IN_RECODERING_WIN(sn, umrx->VR_UH, sn_reodering_low, sn_fs))
 	{
-		u16 tmp_sn = umrx->VR_UR;
+		u32 tmp_sn = umrx->VR_UR;
 		
 		ZLOG_DEBUG("sn falls outside of the reordering window: lcid=%d sn=%u.\n", umrx->logical_chan, sn);
 		
@@ -738,8 +785,8 @@ void rlc_um_init(rlc_entity_um_t *rlc_um, int sn_bits, u32 UM_Window_Size, u32 t
 		void (*free_pdu)(void *, void *), void (*free_sdu)(void *, void *))
 {
 	memset(rlc_um, 0, sizeof(rlc_entity_um_t));
-	if(sn_bits != 5 && sn_bits != 10)
-		sn_bits = 10;
+	if(sn_bits != 5 && sn_bits != 10 && sn_bits != 16)
+		sn_bits = 16;
 	rlc_um->umrx.type = RLC_ENTITY_TYPE_UM;
 	rlc_um->umtx.type = RLC_ENTITY_TYPE_UM;
 	rlc_um->umrx.sn_max = (1<<sn_bits) - 1;
@@ -792,16 +839,23 @@ void rlc_um_set_deliv_func(rlc_entity_um_t *rlc_um, void (*deliv_sdu)(struct rlc
 /***********************************************************************************/
 int rlc_um_reestablish(rlc_entity_um_t *rlcum)
 {
-	u16 sn;
+	u32 sn;
 	rlc_entity_um_rx_t *umrx;
 	rlc_entity_um_tx_t *umtx;
 	rlc_sdu_t *sdu;
 
+	u32 sn_fs;
+	
 	if(rlcum == NULL)
 		return -1;
 
 	umrx = &rlcum->umrx;
 	umtx = &rlcum->umtx;
+
+	assert(umrx->sn_max == umtx->sn_max);
+
+	sn_fs = umrx->sn_max + 1;
+	
 /* 
 -	if it is a receiving UM RLC entity:
 	-	when possible, reassemble RLC SDUs from UMD PDUs with SN < VR(UH), remove RLC headers when 
@@ -811,7 +865,7 @@ int rlc_um_reestablish(rlc_entity_um_t *rlcum)
 */
 	/* force reassemble SDU */
 	sn = umrx->VR_UR;
-	while(RLC_SN_LESS(sn, umrx->VR_UH, (RLC_SN_MAX_10BITS+1)))
+	while(RLC_SN_LESS(sn, umrx->VR_UH, sn_fs))
 	{
 		if(umrx->pdu[sn])
 		{
@@ -819,7 +873,7 @@ int rlc_um_reestablish(rlc_entity_um_t *rlcum)
 			rlc_um_rx_assemble_sdu(umrx, umrx->pdu[sn]);
 			umrx->pdu[sn] = NULL;
 		}
-		sn = RLC_MOD((sn + 1), (RLC_SN_MAX_10BITS+1));
+		sn = RLC_MOD((sn + 1), sn_fs);
 	}
 
 	rlc_um_rx_delivery_sdu(umrx, &umrx->sdu_assembly_q);

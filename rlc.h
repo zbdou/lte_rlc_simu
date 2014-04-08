@@ -63,7 +63,7 @@
 #define RLC_SN_LESSTHAN(sn_small, sn_large, sn_fs) \
 	(RLC_MOD(sn_large-sn_small, sn_fs) < (sn_fs>>1))
 
-#define RLC_SN_FS_MAX 1024
+#define RLC_SN_FS_MAX (1<<16)
 #define RLC_ASSEMBLY_QUEUE_SIZE_MAX 64
 
 #define RLC_LI_NUM_MAX 32
@@ -151,15 +151,15 @@ typedef struct rlc_entity_um_tx
 	u32 logical_chan;					/* logical channel id */
 	void *userdata;						/* user data */
 	
-	u16 VT_US;							/* VT(US) */
-	u16 sn_max;							/* 5 bit SN: 31; 10 bit SN: 1023 */
+	u32 VT_US;							/* VT(US) */
+	u32 sn_max;							/* 5 bit SN: 31; 10 bit SN: 1023; 18bit SN: ?? */
 	
 	s32 sdu_total_size;					/* total size of SDU in Tx queue */
 	s32 n_sdu;							/* number of SDU in Tx queue */
-	dllist_node_t sdu_tx_q;			/* SDU Tx queue */
+	dllist_node_t sdu_tx_q;				/* SDU Tx queue */
 
-	void (*free_pdu)(void *, void *);			/* function to free PDU */
-	void (*free_sdu)(void *, void *);			/* function to free SDU */
+	void (*free_pdu)(void *, void *); /* function to free PDU */
+	void (*free_sdu)(void *, void *); /* function to free SDU */
 }rlc_entity_um_tx_t;
 
 /* rlc um rx entity */
@@ -169,17 +169,17 @@ typedef struct rlc_entity_um_rx
 	u32 logical_chan;					/* logical channel id */
 	void *userdata;						/* user data */
 	
-	u16 VR_UR;							/* VR(UR) */
-	u16 VR_UX;							/* VR(UX) */
-	u16 VR_UH;							/* VR(UH) */
-	u16 UM_Window_Size;					/* const UM_Window_Size */
-	u16 sn_max;							/* 5 bit SN: 31; 10 bit SN: 1023 */
-	ptimer_t t_Reordering;			/* timer t-Reordering */
+	u32 VR_UR;							/* VR(UR) */
+	u32 VR_UX;							/* VR(UX) */
+	u32 VR_UH;							/* VR(UH) */
+	u32 UM_Window_Size;					/* const UM_Window_Size */
+	u32 sn_max;							/* 5 bit SN: 31; 10 bit SN: 1023, 18bit SN: ?? */
+	ptimer_t t_Reordering;				/* timer t-Reordering */
 	
-	rlc_um_pdu_t *pdu[RLC_SN_FS_MAX];	/* reception buffer */
+	rlc_um_pdu_t *pdu[RLC_SN_FS_MAX]; /* reception buffer */
 	void (*deliv_sdu)(struct rlc_entity_um_rx *, rlc_sdu_t *);
-	void (*free_pdu)(void *, void *);			/* function to free PDU */
-	void (*free_sdu)(void *, void *);			/* function to free SDU */
+	void (*free_pdu)(void *, void *); /* function to free PDU */
+	void (*free_sdu)(void *, void *); /* function to free SDU */
 	
 	dllist_node_t sdu_assembly_q;
 	
