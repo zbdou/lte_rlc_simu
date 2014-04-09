@@ -177,6 +177,11 @@ typedef struct rlc_entity_um_rx
 	ptimer_t t_Reordering;				/* timer t-Reordering */
 	
 	rlc_um_pdu_t *pdu[RLC_SN_FS_MAX]; /* reception buffer */
+	packet_t *pktt[RLC_SN_FS_MAX];	  /* used to temporarily store the packet_t */
+	packet_t *cur_pktt;
+	
+	
+
 	void (*deliv_sdu)(struct rlc_entity_um_rx *, rlc_sdu_t *);
 	void (*free_pdu)(void *, void *); /* function to free PDU */
 	void (*free_sdu)(void *, void *); /* function to free SDU */
@@ -186,7 +191,6 @@ typedef struct rlc_entity_um_rx
 	u32 n_discard_pdu;					/* counter: discarded PDUs */
 	u32 n_good_pdu;
 
-	packet_t* pktt;
 }rlc_entity_um_rx_t;
 
 /* rlc um entity */

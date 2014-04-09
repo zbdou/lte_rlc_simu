@@ -34,7 +34,7 @@
 #include "log.h"
 #include "fastalloc.h"
 
-int rlc_um_rx_assemble_sdu(rlc_entity_um_rx_t *umrx, rlc_um_pdu_t *pdu);
+int rlc_um_rx_assemble_sdu(rlc_entity_um_rx_t *umrx, rlc_um_pdu_t *pdu, packet_t *pktt);
 rlc_um_pdu_t *rlc_um_pdu_new();
 void rlc_um_pdu_free(rlc_um_pdu_t *pdu);
 
@@ -127,8 +127,8 @@ static void t_Reordering_um_func(void *timer, void* arg1, void* arg2)
 	{
 		if(umrx->pdu[sn])
 		{
-			ZLOG_INFO("t_Reordering: assembly RLC UM SDU from PDU: lcid=%d sn=%u.\n", umrx->logical_chan, sn);
-			rlc_um_rx_assemble_sdu(umrx, umrx->pdu[sn]);
+			// ZLOG_INFO("t_Reordering: assembly RLC UM SDU from PDU: lcid=%d sn=%u.\n", umrx->logical_chan, sn);
+			rlc_um_rx_assemble_sdu(umrx, umrx->pdu[sn], umrx->pktt[sn]);
 			umrx->pdu[sn] = NULL;
 		}
 		sn = RLC_MOD((sn + 1), sn_fs);
@@ -412,6 +412,7 @@ int rlc_um_rx_process_pdu(rlc_entity_um_rx_t *umrx, u8 *buf_ptr, u32 buf_len, vo
 	{
 		ZLOG_ERR("out of memory for new UM PDU: lcid=%d.\n", umrx->logical_chan);
 		umrx->free_pdu(buf_ptr, cookie);
+		assert(0);
 		return -1;
 	}
 	pdu->buf_ptr = buf_ptr;
@@ -473,7 +474,7 @@ int rlc_um_rx_process_pdu(rlc_entity_um_rx_t *umrx, u8 *buf_ptr, u32 buf_len, vo
  		{
  			umrx->n_discard_pdu ++;
  			rlc_um_pdu_free(pdu);
-			ZLOG_WARN("discard UM PDU -- sn duplicated: lcid=%d sn=%u, VR(UH)=%u, VR(UR)=%u.\n", 
+			ZLOG_DEBUG("discard UM PDU -- sn duplicated: lcid=%d sn=%u, VR(UH)=%u, VR(UR)=%u.\n", 
 					umrx->logical_chan, sn, umrx->VR_UH, umrx->VR_UR);
 			return -1;
  		}
@@ -484,7 +485,7 @@ int rlc_um_rx_process_pdu(rlc_entity_um_rx_t *umrx, u8 *buf_ptr, u32 buf_len, vo
 	{
 		umrx->n_discard_pdu ++;
 		rlc_um_pdu_free(pdu);
-		ZLOG_WARN("discard UM PDU -- (VR(UH) ¨C UM_Window_Size) <= sn < VR(UR): lcid=%d sn=%u, VR(UH)=%u, VR(UR)=%u.\n", 
+		ZLOG_DEBUG("discard UM PDU -- (VR(UH) ¨C UM_Window_Size) <= sn < VR(UR): lcid=%d sn=%u, VR(UH)=%u, VR(UR)=%u.\n", 
 				umrx->logical_chan, sn, umrx->VR_UH, umrx->VR_UR);
 		return -1;
 	}
@@ -495,7 +496,7 @@ int rlc_um_rx_process_pdu(rlc_entity_um_rx_t *umrx, u8 *buf_ptr, u32 buf_len, vo
  	pdu->n_li = rlc_parse_li(e, li_ptr, buf_len, &pdu->data_ptr, pdu->li_s);
  	if(pdu->n_li <= 0 || pdu->n_li > RLC_LI_NUM_MAX)
  	{
- 		ZLOG_WARN("wrong UM PDU: lcid=%d n_li=%d, sn=%u, size=%d.\n", umrx->logical_chan, (int)pdu->n_li, sn, buf_len);
+ 		ZLOG_DEBUG("wrong UM PDU: lcid=%d n_li=%d, sn=%u, size=%d.\n", umrx->logical_chan, (int)pdu->n_li, sn, buf_len);
  		umrx->n_discard_pdu ++;
  		rlc_um_pdu_free(pdu);
  		return -1;
@@ -503,6 +504,9 @@ int rlc_um_rx_process_pdu(rlc_entity_um_rx_t *umrx, u8 *buf_ptr, u32 buf_len, vo
  	/* store pdu */
 	assert(umrx->pdu[sn] == NULL);
 	umrx->pdu[sn] = pdu;
+
+	/* FIXME */
+	umrx->pktt[sn] = umrx->cur_pktt;
 
 /*
  -	if x falls outside of the reordering window:
@@ -528,8 +532,9 @@ int rlc_um_rx_process_pdu(rlc_entity_um_rx_t *umrx, u8 *buf_ptr, u32 buf_len, vo
 			if(umrx->pdu[tmp_sn])
 			{
 				ZLOG_DEBUG("RLC UM assembly SDU from PDU: lcid=%d sn=%u.\n", umrx->logical_chan, tmp_sn);
-				rlc_um_rx_assemble_sdu(umrx, umrx->pdu[tmp_sn]);
+				rlc_um_rx_assemble_sdu(umrx, umrx->pdu[tmp_sn], umrx->pktt[tmp_sn]);
 				umrx->pdu[tmp_sn] = NULL;
+				umrx->pktt[tmp_sn] = NULL;
 			}
 			tmp_sn = RLC_MOD((tmp_sn + 1), sn_fs);
 		}
@@ -551,8 +556,9 @@ int rlc_um_rx_process_pdu(rlc_entity_um_rx_t *umrx, u8 *buf_ptr, u32 buf_len, vo
 	{
 		do{
 			ZLOG_DEBUG("Try to assembly RLC UM SDU from PDU: lcid=%d sn=%u.\n", umrx->logical_chan, sn);
-			rlc_um_rx_assemble_sdu(umrx, umrx->pdu[sn]);
+			rlc_um_rx_assemble_sdu(umrx, umrx->pdu[sn], umrx->pktt[sn]);
 			umrx->pdu[sn] = NULL;
+			umrx->pktt[sn] = NULL;
 			sn = RLC_MOD((sn + 1), sn_fs);
 		}while(umrx->pdu[sn]);
 		
@@ -598,6 +604,7 @@ int rlc_um_rx_process_pdu(rlc_entity_um_rx_t *umrx, u8 *buf_ptr, u32 buf_len, vo
 			umrx->logical_chan, umrx->VR_UR, umrx->VR_UX, umrx->VR_UH);
 	
 	/* deliver intact SDU to upper */
+	/* FIXME */
 	rlc_um_rx_delivery_sdu(umrx, &umrx->sdu_assembly_q);
 	
 	return 0;	
@@ -667,7 +674,7 @@ void rlc_um_rxseg_free(void *data, void *cookie)
 /*   pdu                | i  | PDU control info pointer                            */
 /*   Return             |    | 0 is success                                        */
 /***********************************************************************************/
-int rlc_um_rx_assemble_sdu(rlc_entity_um_rx_t *umrx, rlc_um_pdu_t *pdu)
+int rlc_um_rx_assemble_sdu(rlc_entity_um_rx_t *umrx, rlc_um_pdu_t *pdu, packet_t *pktt)
 {
 	dllist_node_t *sdu_assembly_q = &(umrx->sdu_assembly_q);
 	rlc_sdu_t *sdu;
@@ -743,7 +750,9 @@ int rlc_um_rx_assemble_sdu(rlc_entity_um_rx_t *umrx, rlc_um_pdu_t *pdu)
 
 		ZLOG_DEBUG("assemble first segment: length=%u.\n", pdu->li_s[li_idx]);
 
-		sdu->pktt = umrx->pktt;
+		/* FIXME: this is not correct! */
+		sdu->pktt = pktt;
+
 		sdu->size += pdu->li_s[li_idx];
 		sdu->segment[sdu->n_segment].data = pdu->data_ptr + li_len;
 		sdu->segment[sdu->n_segment].length = pdu->li_s[li_idx];
@@ -870,8 +879,9 @@ int rlc_um_reestablish(rlc_entity_um_t *rlcum)
 		if(umrx->pdu[sn])
 		{
 			ZLOG_DEBUG("Re-Establishment: Try to assembly RLC UM SDU from PDU: lcid=%d sn=%u.\n", umrx->logical_chan, sn);
-			rlc_um_rx_assemble_sdu(umrx, umrx->pdu[sn]);
+			rlc_um_rx_assemble_sdu(umrx, umrx->pdu[sn], umrx->pktt[sn]);
 			umrx->pdu[sn] = NULL;
+			umrx->pktt[sn] = NULL;
 		}
 		sn = RLC_MOD((sn + 1), sn_fs);
 	}

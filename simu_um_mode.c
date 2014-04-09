@@ -123,6 +123,7 @@ void sink(struct rlc_entity_um_rx *umrx, rlc_sdu_t* sdu)
 	*/
 	/* 1. */
 	packet_t *pktt = sdu->pktt;
+
 	pktt->rx_deliver_timestamp = g_time_elasped_in_us;
 
 	/* 2. */
@@ -517,7 +518,7 @@ int mac_process_pdu(rlc_entity_um_rx_t *umrx, u8 *mac_pdu, u32 pdu_len)
 int BER(simu_paras_t *pspt)
 {
 	u32 random = (u32)(RAND_BASE * rand() / (RAND_MAX + 1.0));
-	ZLOG_DEBUG("random = %d\n", random);
+	ZLOG_DEBUG("random = %u, per = %u\n", random, pspt->rl.per);
 	return (random < pspt->rl.per ? DISCARD : NO_DISCARD);
 }
 /*
@@ -531,6 +532,8 @@ void pkt_rx_end_event(void *timer, void* arg1, void* arg2)
 	assert(pktt);
 
 
+	ZLOG_DEBUG("rx, sn = %u\n", pktt->sequence_no);
+	
 	if (BER(pspt) == DISCARD) {
 		/* mark this packet as corrupted */
 		// ZLOG_INFO("mark this packet as corrupted\n");
@@ -544,10 +547,10 @@ void pkt_rx_end_event(void *timer, void* arg1, void* arg2)
 	} else {
 		/* 1. update this packet's statistics */
 		pktt->ptt = RX_OK;
-	
+
 		/* 2. call mac_process_pdu to handle this packet */
 		/* 3. mac pdu is freed in the mac_process_pdu */
-		pspt->rlc_rx.um_rx.umrx.pktt = pktt;
+		pspt->rlc_rx.um_rx.umrx.cur_pktt = pktt;
 		mac_process_pdu(&(pspt->rlc_rx.um_rx.umrx), pktt->mac_pdu, pktt->mac_pdu_size);
 	}
 
@@ -675,6 +678,7 @@ void output_rx_throughput(packet_t *pktt)
 	}
 }
 
+#include "simu_config.h"
 int main (int argc, char *argv[])
 {
 	/*
@@ -687,11 +691,11 @@ int main (int argc, char *argv[])
 	 */
 	/* 1. */
 	simu_paras_t spt;
-	spt.t.packet_size = 100;	/* 100 bytes */
+	spt.t.packet_size = PKT_SIZE; /* bytes */
 	spt.rl.link_distance = 0;
-	spt.rl.prop_delay = MS2US(270);	/* 270 ms */
-	spt.rl.link_bandwidth = 10000;	/* 10 Mbps */
-	spt.rl.per = 1000;					/* x/10000 */
+	spt.rl.prop_delay = MS2US(270);	   /* 270 ms */
+	spt.rl.link_bandwidth = BANDWIDTH; /* bps */
+	spt.rl.per = PER;					/* x/10000 */
 
 	/* this should be set when the mac pdu is build (at the tx_begin_event) */
 	/*
@@ -704,9 +708,9 @@ int main (int argc, char *argv[])
 
 						  
 	/* rlc params */
-	spt.rlc_paras.ump.t_Reordering = MS2US(5); /* 5 ms */
-	spt.rlc_paras.ump.UM_Window_Size = (1<<15);	   /* window size */
-	spt.rlc_paras.ump.sn_FieldLength = 16;	   /* sn length */
+	spt.rlc_paras.ump.t_Reordering = MS2US(T_REORDERING); /* ms */
+	spt.rlc_paras.ump.UM_Window_Size = UWSize;	   /* window size */
+	spt.rlc_paras.ump.sn_FieldLength = SN_LEN;	   /* sn length */
 
 #define PTIMER_MEM_MAX 4096*16
 	spt.g_mem_ptimer_t = fastalloc_create(sizeof(ptimer_t), PTIMER_MEM_MAX, 0, 100);
@@ -746,7 +750,7 @@ int main (int argc, char *argv[])
 
 	/* 4. */
 	int step_in_us = 1;
-	while (g_is_finished == NOT_FINISHED && g_time_elasped_in_us <= MS2US(S2MS(100)) ) {		
+	while (g_is_finished == NOT_FINISHED && g_time_elasped_in_us <= MS2US(S2MS(SIMU_TIME)) ) {
 		rlc_timer_push(step_in_us);		/* us */
 		g_time_elasped_in_us += step_in_us;
 
@@ -759,15 +763,38 @@ int main (int argc, char *argv[])
 	ZLOG_DEBUG("time_elasped_in_us = %d\n", g_time_elasped_in_us);
 
 	int cnt = 0;
+	int output_e2e_delay = 1;
+
+	int n_rxok = 0, n_rxerr = 0;
 	while (!DLLIST_EMPTY(&g_sink_packet_list)) {
 		packet_t *pktt = (packet_t*) DLLIST_HEAD(&g_sink_packet_list);
 
 		/* 1. tx throughput */
 		// output_tx_throughput(pktt);
 		// output_rx_throughput(pktt);
+
+		/* 2. e2e delay */
+		switch (pktt->ptt) {
+		case RX_OK:
+			n_rxok++;
+			break;
+		case RX_ERR:
+			n_rxerr++;
+			break;
+			
+		default:
+			assert(0);
+			break;
+		}
+
+		if( output_e2e_delay ) {
+			if (pktt->ptt == RX_OK )
+				ZLOG_INFO("SN, e2e delay: %u, %u\n", pktt->sequence_no, pktt->rx_deliver_timestamp - pktt->tx_end_timestamp);
+		}
 		
 		dllist_remove(&g_sink_packet_list, &(pktt->node));
 		cnt++;
+
 		// FASTFREE(spt.g_mem_packet_t, pktt);
 		free(pktt); pktt = NULL;
 	}
@@ -775,7 +802,7 @@ int main (int argc, char *argv[])
 	output_tx_throughput(NULL);
 	output_rx_throughput(NULL);
 
-	ZLOG_INFO("cnt = %d\n", cnt);
+	ZLOG_INFO("cnt = %d, rxok = %d, rxerr = %d\n", cnt, n_rxok, n_rxerr);
 
 	return 0;
 }
