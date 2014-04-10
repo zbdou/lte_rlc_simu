@@ -52,7 +52,10 @@ typedef struct {
 	/* statistics */
 	u32 tx_begin_timestamp;
 	u32 tx_end_timestamp;
+
+	u32 rx_end_timestamp;		/* used for measure the buffering time for the RLC layer. */
 	u32 rx_deliver_timestamp;
+
 	u32 jitter;
 } packet_t;
 

@@ -533,7 +533,8 @@ void pkt_rx_end_event(void *timer, void* arg1, void* arg2)
 
 
 	ZLOG_DEBUG("rx, sn = %u\n", pktt->sequence_no);
-	
+	pktt->rx_end_timestamp = g_time_elasped_in_us;
+		
 	if (BER(pspt) == DISCARD) {
 		/* mark this packet as corrupted */
 		// ZLOG_INFO("mark this packet as corrupted\n");
@@ -727,6 +728,7 @@ int main (int argc, char *argv[])
 	/* init log */
 	zlog_default = openzlog(ZLOG_STDOUT);
 	zlog_set_pri(zlog_default, LOG_INFO);
+	zlog_reset_flag(zlog_default, ZLOG_LOGTIME); /* no time display */
 
 	ZLOG_DEBUG("pkt size = %d, prop delay = %d, link bandwidth = %d\n",
 			   spt.t.packet_size, spt.rl.prop_delay, spt.rl.link_bandwidth);
@@ -789,7 +791,7 @@ int main (int argc, char *argv[])
 
 		if( output_e2e_delay ) {
 			if (pktt->ptt == RX_OK )
-				ZLOG_INFO("SN, e2e delay: %u, %u\n", pktt->sequence_no, pktt->rx_deliver_timestamp - pktt->tx_end_timestamp);
+				ZLOG_INFO("SN, buffering: %u, %u\n", pktt->sequence_no, pktt->rx_deliver_timestamp - pktt->rx_end_timestamp);
 		}
 		
 		dllist_remove(&g_sink_packet_list, &(pktt->node));
@@ -802,7 +804,7 @@ int main (int argc, char *argv[])
 	output_tx_throughput(NULL);
 	output_rx_throughput(NULL);
 
-	ZLOG_INFO("cnt = %d, rxok = %d, rxerr = %d\n", cnt, n_rxok, n_rxerr);
+	ZLOG_INFO("n_txed = %d, n_rxok = %d, n_rxerr = %d\n", cnt, n_rxok, n_rxerr);
 
 	return 0;
 }

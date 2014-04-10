@@ -11,7 +11,7 @@
 #define BANDWIDTH (20000)
 
 /* ms */
-#define T_REORDERING (270)
+#define T_REORDERING (540)
 
 /* bits */
 #define SN_LEN (16)
